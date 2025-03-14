@@ -47,11 +47,12 @@ return async(req,res,next)=>{
         if(!user){
             return res.status(401).json({ message: "Unauthorized: User not found."})
         }
-        const currentUserDetail=User.findById(user.id).select("-password -phoneNumber -salt ,-refreshToken")
+        const currentUserDetail=await User.findById(user.id).select("-password -phoneNumber -salt -refreshToken")
         if(!currentUserDetail){
             return res.status(401).json({ message: "Unauthorized: User not found."})
         }
         req.user=currentUserDetail;
+
         next()
         
     } catch (error) {

@@ -22,7 +22,6 @@ const uploadFile = async (localStorage) => {
         // Upload file to Cloudinary
         const uploaded = await cloudinary.uploader.upload(localStorage, { resource_type: "auto" , folder: "chat_app/profilePhoto"});
  
-        console.log("Cloudinary upload successful. URL:", uploaded.url);
 
         // Delete the local file after successful upload
         fs.unlinkSync(localStorage);

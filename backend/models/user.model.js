@@ -11,7 +11,7 @@ phoneNumber:{
     required:true,
     unique:true,
 },
-email:{
+email:{ 
     type:String,
     unique:true,
     required:true,
@@ -34,6 +34,10 @@ contacts: [
     {
       name: String,
       phone: String,
+      save_contact:{
+        type:Boolean,
+        default:false
+      },
       userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     }
   ],

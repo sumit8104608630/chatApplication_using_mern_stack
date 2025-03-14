@@ -29,7 +29,6 @@ const userRegistration=asyncHandler(async(req,res)=>{
         }
         
         const local_path = path.join(__dirname, `../public/temp/${req.file.filename}`);
-        console.log(local_path)
         const upload=await uploadFile(local_path);
         const user={
             name,phoneNumber,email,password,profilePicture:upload.secure_url
@@ -94,10 +93,78 @@ const user_logout=asyncHandler(async(req,res)=>{
     } catch (error) {
         console.log(error)
     }
+});
+
+
+
+//let's create the feature to add the contact no in the user 
+const add_contact_no=asyncHandler(async(req,res)=>{
+    try {
+        const {id}=req.user;
+        const {phoneNumber,contactName}=req.body;
+        const user=await User.findById(id);
+        if(!user){
+            return res.status(400).json(new apiResponse(400,{},"unauthorized"));
+        }
+        const contactUser=await User.findOne({phoneNumber:phoneNumber});
+        if(!contactUser){
+            return res.status(404).json(new apiResponse(404,{},"user doesn't exist in chat app"))
+        }
+        const newContact = {
+            name: contactName,
+            phone: phoneNumber,
+            save_contact:true,
+            userId: contactUser ? contactUser._id : null, // Store user ID if registered
+        };
+        if(user.contacts?.some(item=>item.phoneNumber==phoneNumber)){
+            return res.status(400).json(new apiResponse(400,{},"contact already exist"))
+        }
+        await User.findByIdAndUpdate(id,{$push:{contacts:newContact}},{new:true})
+        await User.findByIdAndUpdate(contactUser._id,{$push:{contacts:{name:user.name,phone:user.phoneNumber,userId:id}}})
+        return res.status(200).json(new apiResponse(200, { contact: newContact }, "Contact added successfully"));
+    } catch (error) {
+        console.log(error)
+    }
+})
+
+// let write the function to get all contact with populating information 
+const get_all_contacts = asyncHandler(async (req, res) => {
+    try {
+        const { id } = req.user;
+        console.log(id)
+        const user = await User.findById(id).populate("contacts.userId", "name phoneNumber email profilePhoto status");
+
+        if (!user) {
+            return res.status(400).json(new apiResponse(400, {}, "Unauthorized"));
+        }
+
+        return res.status(200).json(new apiResponse(200, { contacts: user.contacts }, "Contacts fetched successfully"));
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json(new apiResponse(500, {}, "Internal Server Error"));
+    }
+});
+
+// let check weather the user is login or not
+
+const getUserInfo=asyncHandler(async(req,res)=>{
+    try {
+        const {id}=req.user;
+        const user=await User.findById(id).select("-contacts -password -refreshToken -salt");
+        if(!user){
+            return res.status(400).json(new apiResponse(400,{},"unauthorized"))
+        }
+        return res.status(200).json(new apiResponse(200,{user}, "User info "));
+    } catch (error) {
+        console.log(error)
+    }
 })
 
 export {
     userRegistration,
     user_login,
-    user_logout
+    user_logout,
+    add_contact_no,
+    get_all_contacts,
+    getUserInfo
 }
