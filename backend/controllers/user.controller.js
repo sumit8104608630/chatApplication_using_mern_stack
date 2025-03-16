@@ -17,7 +17,7 @@ const userRegistration=asyncHandler(async(req,res)=>{
 
         const {name,phoneNumber,email,password}=req.body;
         if([name,phoneNumber,email,password].some(item=>item=="")){
-            return apiError(res,400,"Please fill all the fields");
+            return res.status(400).json(new apiResponse(400, "", "Please fill all the detail"));
         }
         const existingUser=await User.findOne({email});
         if(existingUser){
@@ -25,13 +25,13 @@ const userRegistration=asyncHandler(async(req,res)=>{
         }
         
         if (!req.file || !req.file.filename) {
-            return res.status(400).json(new ApiResponse(400, "", "Please upload your profile picture"));
+            return res.status(400).json(new apiResponse(400, "", "Please upload your profile picture"));
         }
         
         const local_path = path.join(__dirname, `../public/temp/${req.file.filename}`);
         const upload=await uploadFile(local_path);
         const user={
-            name,phoneNumber,email,password,profilePicture:upload.secure_url
+            name,phoneNumber,email,password,profilePhoto:upload.secure_url
         }
         await User.create(user)
         return res.status(201).json(new apiResponse(201,user,"User created successfully"));
@@ -62,10 +62,7 @@ const user_login=asyncHandler(async(req,res)=>{
         httpOnly:true,
         secure:true,
     }).json(new apiResponse(
-        200,
-    {}
-        ,
-        "user logged in successfully"
+        200,user,"user logged in successfully"
     ))
     } catch (error) {
      console.log(error)   
@@ -159,6 +156,36 @@ const getUserInfo=asyncHandler(async(req,res)=>{
         console.log(error)
     }
 })
+const check_user_present = asyncHandler(async (req, res) => {
+    try {
+        const { phoneNumber } = req.body;
+        const {id}=req.user
+        const current_user = await User.findById(id);
+        if(current_user.phoneNumber==phoneNumber){
+            return res.status(402).json(new apiResponse(402, {}, "it is you"))
+        }
+        else if(current_user.contacts.some(item=>item.phone==phoneNumber)){
+            return res.status(403).json(new apiResponse(403, {}, "it is you"))
+        }
+        
+        if (!phoneNumber) {
+            return res.status(400).json(new apiResponse(400, {}, "Phone number is required"));
+        }
+
+        const user = await User.findOne({ phoneNumber:phoneNumber.trim() });
+
+        if (user) {
+            return res.status(200).json(
+                new apiResponse(200, { available: true }, "Hey there! 🎉 I'm using the chat app. Let's connect!")
+              );        }
+
+        return res.status(404).json(new apiResponse(404, { available: false }, "User does not exist"));
+    } catch (error) {
+        console.error("Error in check_user_present:", error);
+        return res.status(500).json(new apiResponse(500, {}, "Something went wrong"));
+    }
+});
+
 
 export {
     userRegistration,
@@ -166,5 +193,6 @@ export {
     user_logout,
     add_contact_no,
     get_all_contacts,
-    getUserInfo
+    getUserInfo,
+    check_user_present
 }
