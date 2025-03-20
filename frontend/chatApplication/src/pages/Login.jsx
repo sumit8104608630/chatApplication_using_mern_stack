@@ -18,12 +18,10 @@ const Login = () => {
   try {
       e.preventDefault();
      login(formData);
-
   } catch (error) {
     console.log(error)
   }
   };
-
   return (
     <div className="h-screen bg-[#1a1e23] grid lg:grid-cols-2">
       {/* Left Side - Form */}

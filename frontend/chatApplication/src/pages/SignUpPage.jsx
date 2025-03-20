@@ -45,7 +45,7 @@ signUp(formData,navigate)
   };
 
   return (
-    <div className="min-h-screen bg-[#1a1e23] grid lg:grid-cols-2">
+    <div className="min-h-screen mt-10 bg-[#1a1e23] grid lg:grid-cols-2">
       {/* Left Side - Form */}
       <div className="flex flex-col justify-center items-center p-6 sm:p-12 relative">
         {/* Pattern Background - Only visible on desktop */}

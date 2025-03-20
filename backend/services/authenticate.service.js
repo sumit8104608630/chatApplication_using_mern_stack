@@ -40,6 +40,7 @@ const refreshToken=async(user)=>{
 const get_user=(token)=>{
     try {
        if (token) {
+        
          const payload=jwt.verify(token,access_secrete);
          if(!payload){
              return {error:"Invalid token"};

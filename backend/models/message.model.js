@@ -4,6 +4,12 @@ const MessageSchema=mongoose.Schema({
     message:{
         type:String,
     },
+    images:{
+        type:String,
+    },
+    file:{
+        type:String,
+    },
     sender:{
         type:mongoose.Types.ObjectId,
         ref:"User",
@@ -22,7 +28,7 @@ const MessageSchema=mongoose.Schema({
 },{ timestamps: true });
 
 
- const Message=mongoose.model(MessageSchema,MessageSchema);
+ const Message=mongoose.model("Message",MessageSchema);
  export default Message;
 
 

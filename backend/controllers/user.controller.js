@@ -2,8 +2,8 @@ import { asyncHandler } from "../util/asyncHandler.js";
 import {apiResponse} from "../util/apiResponse.js"
 import {apiError} from "../util/apiError.js"
 import User from "../models/user.model.js"
- import {uploadFile} from "../util/cloudinary.js"
- import { fileURLToPath } from "url"; // Import to define __dirname
+import {uploadFile} from "../util/cloudinary.js"
+import { fileURLToPath } from "url"; // Import to define __dirname
 
 // Define __dirname manually in ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 
 
 import path from "path" 
+import { Console } from "console";
 // user registration controller
 const userRegistration=asyncHandler(async(req,res)=>{
     try {
@@ -47,14 +48,17 @@ const user_login=asyncHandler(async(req,res)=>{
     try {
         const {phoneNumber,password}=req.body;
         if([phoneNumber,password].some(item=>item=="")){
-            return apiError(res,400,"Please fill all the fields");
+            return res.status(400).json(new apiResponse(400,{},"please fill all the field"));
         }
         const user=await User.findOne({phoneNumber});
         if(!user){
             return res.status(400).json(new apiResponse(400,{},"Invalid phone number or password"));
         }
        const token=await User.matchPasswordGenerateToken(phoneNumber,password)
-       //console.log(token)
+       if(token.success){
+        return res.status(400).json(new apiResponse(400,{},token.message))
+       }
+       
        res.status(200).cookie('accessToken',token.token,{
         httpOnly:true,
         secure:true,
@@ -128,8 +132,7 @@ const add_contact_no=asyncHandler(async(req,res)=>{
 const get_all_contacts = asyncHandler(async (req, res) => {
     try {
         const { id } = req.user;
-        console.log(id)
-        const user = await User.findById(id).populate("contacts.userId", "name phoneNumber email profilePhoto status");
+        const user = await User.findById(id).populate("contacts.userId", "name phoneNumber email profilePhoto status isOnline lastSeen");
 
         if (!user) {
             return res.status(400).json(new apiResponse(400, {}, "Unauthorized"));
@@ -186,6 +189,30 @@ const check_user_present = asyncHandler(async (req, res) => {
     }
 });
 
+const update_Profile=asyncHandler(async(req,res)=>{
+    try {
+        const {id}=req.user;
+        const user=req.user
+        if(!user){
+            return res.status(400).json(new apiResponse(400,{},"unauthorized"))
+        }
+        const { name, email, phoneNumber, profilePhoto,status } = req.body;
+
+        const updatedUser = {
+          name: name || user.name,
+          email: email || user.email,
+          phoneNumber: phoneNumber || user.phoneNumber,
+          profilePhoto: profilePhoto || user.profilePhoto,
+          status:status||user.status,
+        };     
+        
+       await User.findByIdAndUpdate(id,{$set:updatedUser});
+       return res.status(200).json(new apiResponse(200, updatedUser, "Profile updated"))
+    } catch (error) {
+        console.log(error) 
+    }
+})
+
 
 export {
     userRegistration,
@@ -194,5 +221,6 @@ export {
     add_contact_no,
     get_all_contacts,
     getUserInfo,
-    check_user_present
+    check_user_present,
+    update_Profile,
 }

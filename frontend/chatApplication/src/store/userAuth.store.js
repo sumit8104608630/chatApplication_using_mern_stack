@@ -8,6 +8,7 @@ export const authStore=create((set)=>({
     isLoginIng:false,
     isCheckingAuth:true,
     isAddContact:false,
+    isUpdatingProfile:false,
     checkAuth:async()=>{
         try {
             set({})
@@ -22,19 +23,22 @@ export const authStore=create((set)=>({
             set({isCheckingAuth:false})
         }
     },
-    login:async(formData)=>{
-        try {
-            set({isLoginIng:true})
-          const response=await axiosInstance.post(`/user/login`,formData);
-          if (response.data.statusCode === 200) {
-            set({authUser:response.data.data})
-            set({isLoginIng:false})
-          }
-        } catch (error) {
-          console.log(error)
-          set({ isLoggingIn: false });
-
+    login: async (formData) => {
+      try {
+        set({ isLoginIng: true }) // Use consistent property name
+        const response = await axiosInstance.post(`/user/login`, formData);
+        if (response.data.statusCode === 200) {
+          set({ authUser: response.data.data })
         }
+        set({ isLoginIng: false }) // Use consistent property name
+      } catch (error) {
+        console.log(error)
+        if (error) {
+          set({ isLoginIng: false }); // Fix property name
+        }
+      } finally {
+        set({ isLoginIng: false }); // Fix property name
+      }
     },
     logout:async(navigate)=>{
         try {
@@ -77,5 +81,20 @@ export const authStore=create((set)=>({
            } catch (error) {
             console.log(error)
            }
+    },
+    updateProfile:async(formData)=>{
+      try {
+        set({isUpdatingProfile:true})
+        const response=await axiosInstance.put(`/user/update_profile`,formData);
+        set((prev)=>({...prev,...response.data.data}))
+        set({isUpdatingProfile:false})
+
+        return response
+      } catch (error) {
+        console.log(error)
+      }
+      finally{
+        set({isUpdatingProfile:false})
+      }
     }
 }))

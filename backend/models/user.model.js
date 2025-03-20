@@ -45,6 +45,10 @@ status: {
     type: String, 
     default: "Hey there! I'm using ChatApp."
 },
+lastSeen:{
+    type:String,
+    default:Date.now()
+},
 isOnline: { 
     type: Boolean,
      default: false 
@@ -79,7 +83,7 @@ try {
     const salt=user.salt;
     const hashedPassword=await bcrypt.hash(password,salt);
     if(hashedPassword!==user.password){
-        throw new Error("Invalid password");
+        return ({ success: true, message: "Invalid password" });
     }
     const token=await setUser(user);
     const refresh_token=await refreshToken(user);
