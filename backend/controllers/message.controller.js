@@ -86,6 +86,14 @@ const get_all_messages = asyncHandler(async(req, res) => {
         if (!receiverId.id) {
             return res.status(400).json(new apiResponse(400, "", "Receiver ID is required"));
         }
+        await Message.updateMany(
+            {
+                sender: new mongoose.Types.ObjectId(receiverId),
+                receiver: new mongoose.Types.ObjectId(id),
+            },
+            { $set: { status: "seen" } }
+        );
+
         
         const message = await Message.aggregate([
             {   

@@ -169,6 +169,7 @@ const ChatHomePage = () => {
     return <>Loading...</>;
   }
 
+
   return (
     <div className="h-screen bg-[#1a1e23] mt-16 flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
@@ -343,7 +344,8 @@ const ChatHomePage = () => {
                         </div>
                         <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>
                           <span className='mr-1 text-center'>
-                            {renderMessageStatus(message?.status, message?.isOwn)}
+                            {get_online_user.includes(activeContact?._id)?<CheckCheck className="h-3 w-3 ml-1 inline text-teal-400" />:
+                            renderMessageStatus(message?.status, message?.isOwn)}
                           </span>
                           {message.time}
                         </p>
