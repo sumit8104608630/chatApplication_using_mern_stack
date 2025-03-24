@@ -6,9 +6,11 @@ const MessageSchema=mongoose.Schema({
     },
     images:{
         type:String,
+        default:null
     },
     file:{
         type:String,
+        default:null
     },
     sender:{
         type:mongoose.Types.ObjectId,

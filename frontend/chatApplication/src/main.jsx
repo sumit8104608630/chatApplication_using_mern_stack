@@ -12,11 +12,11 @@ import Profile from './pages/Profile.jsx';
 import Error from './pages/Error.jsx';
 import AddContactPage from './pages/AddContactPage.jsx';
 const App = () => {
-  const { authUser, checkAuth, isCheckingAuth,isUpdatingProfile } = authStore();
+  const { authUser, checkAuth, isCheckingAuth,isUpdatingProfile ,get_online_user} = authStore();
 
   useEffect(() => {
     checkAuth(); // ✅ Check auth on mount
-  }, [checkAuth]);
+  }, [checkAuth]); 
 
   if (isCheckingAuth) {
     return (

@@ -7,7 +7,7 @@ import {checkAuthenticationCookie} from "../middlewares/authentication.middlewar
 
 
 userRoutes.post("/register",upload.single("profilePhoto"),userRegistration);
-userRoutes.post("/login",upload.single("profilePhoto"),user_login);
+userRoutes.post("/login",user_login);
 userRoutes.get("/logout",checkAuthenticationCookie("accessToken"),user_logout);
 userRoutes.post("/contact",checkAuthenticationCookie("accessToken"),add_contact_no);
 userRoutes.get("/get_contact",checkAuthenticationCookie("accessToken"),get_all_contacts);

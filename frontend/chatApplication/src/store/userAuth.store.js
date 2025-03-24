@@ -1,20 +1,21 @@
 import {create} from "zustand"
 import { axiosInstance } from "../lib/axios"
+import {io} from "socket.io-client"
 
-
-export const authStore=create((set)=>({
+export const authStore=create((set,get)=>({
     authUser:null,
+    get_online_user:[],
     isSigningUp:false,
     isLoginIng:false,
     isCheckingAuth:true,
     isAddContact:false,
     isUpdatingProfile:false,
+    socket:null,
     checkAuth:async()=>{
         try {
-            set({})
             const response=await axiosInstance.get("/user/userInfo")
             set({authUser:response.data.data.user});
-            
+            get().connection()
         } catch (error) {
             console.log(error)
             set({authUser:null})
@@ -29,6 +30,7 @@ export const authStore=create((set)=>({
         const response = await axiosInstance.post(`/user/login`, formData);
         if (response.data.statusCode === 200) {
           set({ authUser: response.data.data })
+          get().connection()
         }
         set({ isLoginIng: false }) // Use consistent property name
       } catch (error) {
@@ -45,6 +47,7 @@ export const authStore=create((set)=>({
             const response=await axiosInstance.get(`/user/logout`)
             if(response.data.statusCode==200){
                 set({authUser:null})
+                get().disconnection()
                 navigate("/login")
             }
           } catch (error) {
@@ -95,6 +98,36 @@ export const authStore=create((set)=>({
       }
       finally{
         set({isUpdatingProfile:false})
+      }
+    },
+    // let's create socket.io connect method
+    connection: () => {
+      try {
+        const {authUser} = get()
+        if (!authUser || get().socket?.connected) return;
+        
+        const socket = io(`http://localhost:9000`, {
+          query: { userId: authUser._id }
+        })
+        
+        // Listen for the onlineUser event
+        socket.on("onlineUser", (onlineUsers) => {
+          set({ get_online_user: onlineUsers })
+        })
+
+        set({ socket: socket })
+    
+        return socket
+      } catch (error) {
+        console.log(error)
+        return null
+      }
+    },
+    disconnection:async()=>{
+      try {
+        if(get().socket?.connected)get().socket.disconnect();
+      } catch (error) {
+        console.log(error)
       }
     }
 }))

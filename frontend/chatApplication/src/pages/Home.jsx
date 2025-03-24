@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Search,
@@ -10,40 +10,55 @@ import {
   Paperclip,
   Smile,
   ArrowLeft,
-  Menu
+  Menu,
+  Image,
+  File,
+  X
 } from 'lucide-react';
 import { messageStore } from '../store/message.store.js';
 import { authStore } from '../store/userAuth.store.js';
+//import { authStore } from '../store/userAuth.store.js';
 
 const ChatHomePage = () => {
-  const { contactsLoading, get_all_contacts, contacts ,send_message,getAll_messages,
-    messages
+  const {get_online_user}=authStore()
+  const { contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,
+    messages,setSelectedUser,subScribe,selectedUser,unSubScribe
   } = messageStore();
-  const [message,setMessage]=useState({
-    receiverId:"",
-    message:"",
-    status:"sent",
-  })
+  const [message, setMessage] = useState({
+    receiverId: "",
+    message: "",
+    status: "sent",
+    file: null,
+    image:null
+  });
+  const [showFilePopup, setShowFilePopup] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
+  const fileInputRef = useRef(null);
+  const [fullViewImage,setFullViewImage]=useState(null)
   useEffect(() => {
     get_all_contacts();
   }, [get_all_contacts]);
-   const [activeContact, setActiveContact] = useState(null);
-  const [showContactsOnMobile, setShowContactsOnMobile] = useState(true);
+  useEffect(()=>{
+  subScribe()
+  return ()=>unSubScribe()
+  },[selectedUser,unSubScribe,subScribe])
   
-
-
+  const [activeContact, setActiveContact] = useState(null);
+  const [showContactsOnMobile, setShowContactsOnMobile] = useState(true);
 
   const handleContactClick = (contactId) => {
+    setSelectedUser(contactId._id);
     setActiveContact(contactId);
-    console.log(contactId._id)
-    setMessage((prev)=>({...prev,receiverId:contactId._id}))
-    getAll_messages(contactId._id)
+    setMessage((prev) => ({...prev, receiverId: contactId._id}));
+    getAll_messages(contactId._id);
     // On mobile, switch to message view when a contact is selected
     setShowContactsOnMobile(false);
   };
 
   const handleBackToContacts = () => {
     setShowContactsOnMobile(true);
+    
   };
 
   // Convert timestamp to readable format
@@ -53,20 +68,97 @@ const ChatHomePage = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const handleInputChange=(e)=>{
-    setMessage((prev)=>({...prev,message:e.target.value}))
-  }
+  const handleInputChange = (e) => {
+    setMessage((prev) => ({...prev, message: e.target.value}));
+  };
+
+  const handleSendMessage = () => {
+    try {
+      const messageToSend = { ...message };
+      const new_format = new FormData();
+      new_format.append("message", messageToSend.message);
+      new_format.append("receiverId", message.receiverId);
+      new_format.append("file", message.file);
+      new_format.append("status", message.status);
+      new_format.append("image", message.image);
+      
+      send_message(new_format);
+      
+      // One single state update with all reset values
+      setMessage((prev) => ({
+        ...prev,
+        message: "",
+        status: "sent",
+        file: null,
+        image: null
+      }));
+      
+      // Clear file previews
+      setSelectedFile(null);
+      setFilePreview(null);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const toggleFilePopup = () => {
+    setShowFilePopup(!showFilePopup);
+  };
+
+  const handleFileSelection = (type) => {
+    if (fileInputRef.current) {
+      fileInputRef.current.setAttribute('accept', type === 'image' ? 'image/*' : '*/*');
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      
+      // Update message state with file
+   
+      
+      // Create preview URL for images
+      if (file.type.startsWith('image/')) {
+        setMessage((prev) => ({
+          ...prev,
+          image: file
+        }));
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFilePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setMessage((prev) => ({
+          ...prev,
+          file: file
+        }));
+        setFilePreview(null);
+      }
+    }
+    setShowFilePopup(false);
+  };
 
 
-const   handleSendMessage =(activeAccount)=>{
-  try {
-    console.log(message)
-    console.log(activeAccount)
-    send_message(message)
-  } catch (error) {
-    console.log(error)
-  }
-}
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    setMessage((prev) => ({
+      ...prev,
+      file: null
+    }));
+  };
+
+
+
+
+
+
+
+
 
   return (<>{contactsLoading ? <>Loading...</> :
     <div className="h-screen bg-[#1a1e23] mt-16 flex flex-col md:flex-row">
@@ -143,20 +235,20 @@ const   handleSendMessage =(activeAccount)=>{
                     <ArrowLeft className="h-5 w-5" />
                   </button>
                 )}
-                {contacts.find(c => c._id === activeContact) && (
+                {contacts.find(c => c.userId._id === activeContact._id) && (
                   <>
                     <img
-                      src={contacts.find(c => c._id === activeContact)?.userId.profilePhoto}
-                      alt={contacts.find(c => c._id === activeContact)?.userId.name}
+                      src={contacts.find(c => c.userId._id === activeContact._id)?.userId.profilePhoto}
+                      alt={contacts.find(c => c.userId._id === activeContact._id)?.userId.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="ml-3">
-                      <h3 className="text-white font-medium">{contacts.find(c => c._id === activeContact)?.userId.name}</h3>
+                      <h3 className="text-white font-medium">{contacts.find(c => c.userId._id === activeContact._id)?.userId.name}</h3>
                       <p className="text-xs text-gray-400">
-                        {contacts.find(c => c._id === activeContact)?.userId.isOnline ? 'Online' : 'Last seen ' + formatLastSeen(contacts.find(c => c._id === activeContact)?.userId.lastSeen)}
+                        {get_online_user.includes( activeContact._id) ? 'Online' : 'Last seen ' + formatLastSeen(contacts.find(c => c.userId._id === activeContact._id)?.userId.lastSeen)}
                       </p>
                     </div>
-                  </>
+                  </> 
                 )}
               </div>
               <div className="flex items-center space-x-3">
@@ -189,8 +281,39 @@ const   handleSendMessage =(activeAccount)=>{
                         />
                       )}
                       <div>
-                        <div className={`  ${message.isOwn ? 'bg-teal-500 p-3 rounded-l-lg rounded-tr-lg text-white' : 'bg-gray-800 p-3 rounded-r-lg rounded-tl-lg text-white'}`}>
+                        <div className={`${message.isOwn ? 'bg-teal-500 p-3 rounded-l-lg rounded-tr-lg text-white' : 'bg-gray-800 p-3 rounded-r-lg rounded-tl-lg text-white'}`}>
                           <p className="text-sm">{message.text}</p>
+                          {message?.image && message.image.match(/\.(jpeg|jpg|gif|png)$/) && (
+                            <img 
+                            onClick={()=>setFullViewImage(message?.image)}
+                              src={message.image} 
+                              alt="Shared image" 
+                              className="mt-2 rounded max-w-56 h-auto" 
+                            />
+                          )}
+
+                          {fullViewImage && (
+                                                <div 
+                                                  className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                                                 onClick={() => setFullViewImage(null)}
+                                                >
+                                                  <div className="max-w-4xl max-h-screen p-4">
+                                                    <img 
+                                                      src={fullViewImage} 
+                                                      alt="Full view" 
+                                                     className="max-w-full max-h-[90vh] object-contain" 
+                                                    />
+                                                  </div>
+                                                </div>
+                                              )}
+
+
+                          {message.file && !message.file.match(/\.(jpeg|jpg|gif|png)$/) && (
+                            <div className="mt-2 bg-gray-700 p-2 w-56 rounded flex items-center">
+                              <File className="h-4 w-full " />
+                              <span className="text-xs truncate">{message.file}</span>
+                            </div>
+                          )}
                         </div>
                         <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>{message.time}</p>
                       </div>
@@ -200,26 +323,104 @@ const   handleSendMessage =(activeAccount)=>{
               </div>
             </div>
             
-            {/* Message Input */}
+            {/* Message Input Area */}
             <div className="p-2 sm:p-4 border-t border-gray-800">
-              <div className="flex items-center bg-gray-800 rounded-lg p-2">
-                <button className="text-gray-400 hover:text-white p-1 sm:p-2">
+              {/* File Preview Area - only shown when a file is selected */}
+              {filePreview && (
+                <div className="mb-2 relative">
+                  <div className="relative inline-block">
+                    <img 
+                      src={filePreview} 
+                      alt="Preview" 
+                      className="h-24 max-w-full rounded object-cover border border-gray-700" 
+                    />
+                    <button
+                      onClick={removeSelectedFile}
+                      className="absolute -top-2 -right-2 bg-gray-800 text-white rounded-full p-1 shadow-lg"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Input Bar */}
+              <div className="flex items-center bg-gray-800 rounded-lg p-2 relative">
+                <button 
+                  className="text-gray-400 hover:text-white p-1 sm:p-2"
+                  onClick={toggleFilePopup}
+                >
                   <PlusCircle className="h-5 w-5" />
                 </button>
                 <button className="text-gray-400 hover:text-white p-1 sm:p-2 hidden sm:block">
                   <Paperclip className="h-5 w-5" />
                 </button>
+                
+                {/* File selection popup */}
+                {showFilePopup && (
+                  <div className="absolute bottom-12 left-0 bg-gray-900 rounded-lg shadow-lg p-3 flex flex-col space-y-2 border border-gray-700 w-52 z-10">
+                    <div className="flex justify-between items-center mb-1">
+                      <h4 className="text-white text-sm font-medium">Select file type</h4>
+                      <button 
+                        onClick={toggleFilePopup}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => handleFileSelection('image')}
+                      className="flex items-center space-x-2 p-2 hover:bg-gray-800 rounded text-white text-sm"
+                    >
+                      <Image className="h-5 w-5 text-teal-500" />
+                      <span>Upload Image</span>
+                    </button>
+                    <button 
+                      onClick={() => handleFileSelection('file')}
+                      className="flex items-center space-x-2 p-2 hover:bg-gray-800 rounded text-white text-sm"
+                    >
+                      <File className="h-5 w-5 text-teal-500" />
+                      <span>Upload File</span>
+                    </button>
+                    {/* Hidden file input */}
+                    <input 
+                    
+                      type="file" 
+                      ref={fileInputRef}
+                      className="hidden"
+                      
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                )}
+                
                 <input
-                onChange={(e)=>handleInputChange(e)}
+                  onChange={(e)=>handleInputChange(e)}
                   type="text"
                   value={message.message}
                   placeholder="Type a message..."
                   className="flex-1 bg-transparent border-0 focus:ring-0 focus:outline-0 text-white px-2 text-sm sm:text-base"
                 />
+                {selectedFile && !filePreview && (
+                  <div className="bg-gray-700 px-2 py-1 rounded text-xs text-white flex items-center mr-2">
+                    <File className="h-3 w-3 mr-1 text-gray-400" />
+                    <span className="truncate max-w-20">{selectedFile.name}</span>
+                    <button 
+                      onClick={removeSelectedFile}
+                      className="ml-1 text-gray-400 hover:text-white"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
                 <button className="text-gray-400 hover:text-white p-1 sm:p-2 hidden sm:block">
                   <Smile className="h-5 w-5" />
                 </button>
-                <button onClick={()=>handleSendMessage(activeContact)} className="bg-teal-500 text-white p-1 sm:p-2 rounded-lg">
+                <button 
+                  onClick={()=>handleSendMessage(activeContact)} 
+                  className="bg-teal-500 text-white p-1 sm:p-2 rounded-lg"
+                  disabled={!message.message && !selectedFile}
+                >
                   <Send className="h-5 w-5" />
                 </button>
               </div>
