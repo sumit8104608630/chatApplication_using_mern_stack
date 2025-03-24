@@ -50,9 +50,11 @@ export const messageStore=create((set,get)=>({
     unSubScribe:()=>{
         // let's unSubScribe
         const socket=authStore.getState().socket;
+        if(!socket)return
         socket.off('newMessage')
     },
     setSelectedUser:(selectedUserId)=>{
+        
         set({selectedUser:selectedUserId})
     }
 }))

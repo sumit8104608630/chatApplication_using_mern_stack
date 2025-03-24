@@ -11,7 +11,6 @@ const __dirname = path.dirname(__filename);
 
 
 import path from "path" 
-import { Console } from "console";
 // user registration controller
 const userRegistration=asyncHandler(async(req,res)=>{
     try {
@@ -77,7 +76,7 @@ const user_login=asyncHandler(async(req,res)=>{
 const user_logout=asyncHandler(async(req,res)=>{
     try {
         const {id}=req.user;
-        await User.findByIdAndUpdate(id,{$set:{refreshToken:undefined}});
+        await User.findByIdAndUpdate(id,{$set:{refreshToken:undefined,lastSeen:Date.now()}});
         res.status(200).clearCookie('accessToken',{
             httpOnly:true,
             secure:true,
@@ -102,7 +101,7 @@ const user_logout=asyncHandler(async(req,res)=>{
 const add_contact_no=asyncHandler(async(req,res)=>{
     try {
         const {id}=req.user;
-        const {phoneNumber,contactName}=req.body;
+        const {phoneNumber,name}=req.body;
         const user=await User.findById(id);
         if(!user){
             return res.status(400).json(new apiResponse(400,{},"unauthorized"));
@@ -112,15 +111,16 @@ const add_contact_no=asyncHandler(async(req,res)=>{
             return res.status(404).json(new apiResponse(404,{},"user doesn't exist in chat app"))
         }
         const newContact = {
-            name: contactName,
+            name: name,
             phone: phoneNumber,
             save_contact:true,
             userId: contactUser ? contactUser._id : null, // Store user ID if registered
         };
-        if(user.contacts?.some(item=>item.phoneNumber==phoneNumber)){
+        if(user.contacts?.some(item=>item.phone==phoneNumber)){
             return res.status(400).json(new apiResponse(400,{},"contact already exist"))
         }
         await User.findByIdAndUpdate(id,{$push:{contacts:newContact}},{new:true})
+        if(contactUser.contacts?.some(item=>item.phone==user.phoneNumber))
         await User.findByIdAndUpdate(contactUser._id,{$push:{contacts:{name:user.name,phone:user.phoneNumber,userId:id}}})
         return res.status(200).json(new apiResponse(200, { contact: newContact }, "Contact added successfully"));
     } catch (error) {

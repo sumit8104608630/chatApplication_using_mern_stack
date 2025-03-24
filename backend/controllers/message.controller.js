@@ -58,6 +58,7 @@ const store_messages=asyncHandler(async(req,res)=>{
                     image:message_obj.images,
                     isOwn:true,
                     profilePhoto:user.profilePhoto,
+                    status:message_obj.status,
                     sender:id,
                     text:message,
                     time:formattedTime

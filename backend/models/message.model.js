@@ -24,7 +24,7 @@ const MessageSchema=mongoose.Schema({
     },
     status:{
         type:String,
-        enum: ["sent", "delivered", "seen"],
+        enum: ["sent", "received", "seen"],
         default: "sent"
     },
 },{ timestamps: true });

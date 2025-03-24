@@ -1,67 +1,65 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Search,
-  MoreVertical,
-  Phone,
-  Video,
-  Send,
-  PlusCircle,
-  Paperclip,
-  Smile,
-  ArrowLeft,
-  Menu,
-  Image,
-  File,
-  X
+  Search, MoreVertical, Phone, Video, Send, PlusCircle, Paperclip, 
+  Smile, ArrowLeft, Menu, Image, File, X, Clock, Check, 
+  UserCircleIcon, CheckCheck, UserCircle
 } from 'lucide-react';
 import { messageStore } from '../store/message.store.js';
 import { authStore } from '../store/userAuth.store.js';
-//import { authStore } from '../store/userAuth.store.js';
 
 const ChatHomePage = () => {
-  const {get_online_user}=authStore()
-  const { contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,
-    messages,setSelectedUser,subScribe,selectedUser,unSubScribe
+  const scrollRef = useRef(null);
+  const fileInputRef = useRef(null);
+  
+  const { get_online_user } = authStore();
+  const { 
+    contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,
+    messages, setSelectedUser, subScribe, selectedUser, unSubScribe
   } = messageStore();
+  
   const [message, setMessage] = useState({
     receiverId: "",
     message: "",
-    status: "sent",
+    status: "",
     file: null,
-    image:null
+    image: null
   });
   const [showFilePopup, setShowFilePopup] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
-  const fileInputRef = useRef(null);
-  const [fullViewImage,setFullViewImage]=useState(null)
+  const [fullViewImage, setFullViewImage] = useState(null);
+  const [activeContact, setActiveContact] = useState(null);
+  const [showContactsOnMobile, setShowContactsOnMobile] = useState(true);
+
   useEffect(() => {
     get_all_contacts();
   }, [get_all_contacts]);
-  useEffect(()=>{
-  subScribe()
-  return ()=>unSubScribe()
-  },[selectedUser,unSubScribe,subScribe])
-  
-  const [activeContact, setActiveContact] = useState(null);
-  const [showContactsOnMobile, setShowContactsOnMobile] = useState(true);
+
+  useEffect(() => {
+    subScribe();
+    return () => unSubScribe();
+  }, [selectedUser, unSubScribe, subScribe]);
+
+  useEffect(() => {
+    if (scrollRef.current && messages) {
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   const handleContactClick = (contactId) => {
     setSelectedUser(contactId._id);
     setActiveContact(contactId);
-    setMessage((prev) => ({...prev, receiverId: contactId._id}));
+    setMessage((prev) => ({ ...prev, receiverId: contactId._id }));
     getAll_messages(contactId._id);
-    // On mobile, switch to message view when a contact is selected
     setShowContactsOnMobile(false);
   };
 
   const handleBackToContacts = () => {
+    setSelectedUser(null);
     setShowContactsOnMobile(true);
-    
   };
 
-  // Convert timestamp to readable format
   const formatLastSeen = (timestamp) => {
     if (!timestamp) return "Unknown";
     const date = new Date(parseInt(timestamp));
@@ -69,31 +67,37 @@ const ChatHomePage = () => {
   };
 
   const handleInputChange = (e) => {
-    setMessage((prev) => ({...prev, message: e.target.value}));
+    setMessage((prev) => ({ ...prev, message: e.target.value }));
   };
 
   const handleSendMessage = () => {
     try {
       const messageToSend = { ...message };
+      if (selectedUser) {
+        if (get_online_user.includes(selectedUser)) {
+          message["status"] = "seen";
+        } else {
+          message["status"] = "received";
+        }
+      }
+     
       const new_format = new FormData();
       new_format.append("message", messageToSend.message);
       new_format.append("receiverId", message.receiverId);
       new_format.append("file", message.file);
       new_format.append("status", message.status);
       new_format.append("image", message.image);
-      
+    
       send_message(new_format);
       
-      // One single state update with all reset values
       setMessage((prev) => ({
         ...prev,
         message: "",
-        status: "sent",
+        status: "",
         file: null,
         image: null
       }));
       
-      // Clear file previews
       setSelectedFile(null);
       setFilePreview(null);
     } catch (error) {
@@ -117,10 +121,6 @@ const ChatHomePage = () => {
     if (file) {
       setSelectedFile(file);
       
-      // Update message state with file
-   
-      
-      // Create preview URL for images
       if (file.type.startsWith('image/')) {
         setMessage((prev) => ({
           ...prev,
@@ -142,7 +142,6 @@ const ChatHomePage = () => {
     setShowFilePopup(false);
   };
 
-
   const removeSelectedFile = () => {
     setSelectedFile(null);
     setFilePreview(null);
@@ -152,15 +151,25 @@ const ChatHomePage = () => {
     }));
   };
 
+  const renderMessageStatus = (status, isOwn) => {
+    if (!isOwn) return;
+    switch (status) {
+      case "sent":
+        return <Check className="h-3 w-3 ml-1 inline text-gray-400" />;
+      case "received":
+        return <CheckCheck className="h-3 w-3 ml-1 inline text-gray-400" />;
+      case "seen":
+        return <CheckCheck className="h-3 w-3 ml-1 inline text-teal-400" />;
+      default:
+        return <Clock className="h-3 w-3 ml-1 inline text-gray-400" />;
+    }
+  };
 
+  if (contactsLoading) {
+    return <>Loading...</>;
+  }
 
-
-
-
-
-
-
-  return (<>{contactsLoading ? <>Loading...</> :
+  return (
     <div className="h-screen bg-[#1a1e23] mt-16 flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
       <div className={`${showContactsOnMobile ? 'flex' : 'hidden'} md:flex md:w-80 border-r border-gray-800 flex-col h-full md:h-screen`}>
@@ -191,19 +200,31 @@ const ChatHomePage = () => {
             >
               <div className="flex items-center">
                 <div className="relative">
-                  <img
-                    src={contact.userId.profilePhoto}
-                    alt={contact.userId.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  {contact.userId.isOnline && (
+                  {contact.save_contact ?
+                    <img
+                      src={contact.userId.profilePhoto}
+                      alt={contact.userId.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    /> :
+                    <img
+                      src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
+                      alt=""
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  }
+                  {get_online_user.includes(contact.userId._id) && (
                     <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
                   )}
                 </div>
                 <div className="ml-3 flex-1">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-white font-medium">{contact.userId.name}</h3>
+                    {contact.save_contact ?
+                      <h3 className="text-white font-medium">{contact.name}</h3> :
+                      <h3 className="text-white font-medium">{contact.phone}</h3>
+                    }
+                    {get_online_user.includes(contact.userId._id)?<span className="text-xs text-green-500">Online</span>:
                     <span className="text-xs text-gray-400">{formatLastSeen(contact.userId.lastSeen)}</span>
+                    }
                   </div>
                   <div className="flex justify-between items-center mt-1">
                     <p className="text-sm text-gray-400 truncate max-w-xs">{contact.userId.status || "Hey there! I'm using ChatApp."}</p>
@@ -238,14 +259,18 @@ const ChatHomePage = () => {
                 {contacts.find(c => c.userId._id === activeContact._id) && (
                   <>
                     <img
-                      src={contacts.find(c => c.userId._id === activeContact._id)?.userId.profilePhoto}
-                      alt={contacts.find(c => c.userId._id === activeContact._id)?.userId.name}
+                      src={activeContact && contacts.find(c => c.userId._id === activeContact._id)?.save_contact 
+                        ? contacts.find(c => c.userId._id === activeContact._id)?.userId.profilePhoto
+                        : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"}
+                      alt={activeContact && contacts.find(c => c.userId._id === activeContact._id)?.userId.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="ml-3">
-                      <h3 className="text-white font-medium">{contacts.find(c => c.userId._id === activeContact._id)?.userId.name}</h3>
+                      <h3 className="text-white font-medium">{contacts.find(c => c.userId._id === activeContact._id)?.save_contact
+                        ? contacts.find(c => c.userId._id === activeContact._id)?.name
+                        : contacts.find(c => c.userId._id === activeContact._id)?.phone}</h3>
                       <p className="text-xs text-gray-400">
-                        {get_online_user.includes( activeContact._id) ? 'Online' : 'Last seen ' + formatLastSeen(contacts.find(c => c.userId._id === activeContact._id)?.userId.lastSeen)}
+                        {get_online_user.includes(activeContact._id) ? 'Online' : 'Last seen ' + formatLastSeen(contacts.find(c => c.userId._id === activeContact._id)?.userId.lastSeen)}
                       </p>
                     </div>
                   </> 
@@ -266,7 +291,7 @@ const ChatHomePage = () => {
             
             {/* Messages */}
             <div className="flex-1 p-2 sm:p-4 overflow-y-auto bg-[#1a1e23]">
-              <div className="space-y-4">
+              <div ref={scrollRef} className="space-y-4">
                 {messages?.map((message) => (
                   <div 
                     key={message.id}
@@ -275,7 +300,9 @@ const ChatHomePage = () => {
                     <div className="flex max-w-xs md:max-w-md">
                       {!message.isOwn && (
                         <img
-                          src={contacts.find(c => c.userId._id === message.sender)?.userId.profilePhoto}
+                          src={contacts.find(c => c.userId._id === message.sender)?.save_contact 
+                            ? contacts.find(c => c.userId._id === message.sender)?.userId.profilePhoto 
+                            : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"}
                           alt="avatar"
                           className="w-8 h-8 rounded-full object-cover mr-2 self-end"
                         />
@@ -285,7 +312,7 @@ const ChatHomePage = () => {
                           <p className="text-sm">{message.text}</p>
                           {message?.image && message.image.match(/\.(jpeg|jpg|gif|png)$/) && (
                             <img 
-                            onClick={()=>setFullViewImage(message?.image)}
+                              onClick={() => setFullViewImage(message?.image)}
                               src={message.image} 
                               alt="Shared image" 
                               className="mt-2 rounded max-w-56 h-auto" 
@@ -293,29 +320,33 @@ const ChatHomePage = () => {
                           )}
 
                           {fullViewImage && (
-                                                <div 
-                                                  className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-                                                 onClick={() => setFullViewImage(null)}
-                                                >
-                                                  <div className="max-w-4xl max-h-screen p-4">
-                                                    <img 
-                                                      src={fullViewImage} 
-                                                      alt="Full view" 
-                                                     className="max-w-full max-h-[90vh] object-contain" 
-                                                    />
-                                                  </div>
-                                                </div>
-                                              )}
-
+                            <div 
+                              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                              onClick={() => setFullViewImage(null)}
+                            >
+                              <div className="max-w-4xl max-h-screen p-4">
+                                <img 
+                                  src={fullViewImage} 
+                                  alt="Full view" 
+                                  className="max-w-full max-h-[90vh] object-contain" 
+                                />
+                              </div>
+                            </div>
+                          )}
 
                           {message.file && !message.file.match(/\.(jpeg|jpg|gif|png)$/) && (
                             <div className="mt-2 bg-gray-700 p-2 w-56 rounded flex items-center">
-                              <File className="h-4 w-full " />
+                              <File className="h-4 w-full" />
                               <span className="text-xs truncate">{message.file}</span>
                             </div>
                           )}
                         </div>
-                        <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>{message.time}</p>
+                        <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>
+                          <span className='mr-1 text-center'>
+                            {renderMessageStatus(message?.status, message?.isOwn)}
+                          </span>
+                          {message.time}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -382,20 +413,17 @@ const ChatHomePage = () => {
                       <File className="h-5 w-5 text-teal-500" />
                       <span>Upload File</span>
                     </button>
-                    {/* Hidden file input */}
                     <input 
-                    
                       type="file" 
                       ref={fileInputRef}
                       className="hidden"
-                      
                       onChange={handleFileChange}
                     />
                   </div>
                 )}
                 
                 <input
-                  onChange={(e)=>handleInputChange(e)}
+                  onChange={(e) => handleInputChange(e)}
                   type="text"
                   value={message.message}
                   placeholder="Type a message..."
@@ -417,7 +445,7 @@ const ChatHomePage = () => {
                   <Smile className="h-5 w-5" />
                 </button>
                 <button 
-                  onClick={()=>handleSendMessage(activeContact)} 
+                  onClick={() => handleSendMessage(activeContact)} 
                   className="bg-teal-500 text-white p-1 sm:p-2 rounded-lg"
                   disabled={!message.message && !selectedFile}
                 >
@@ -440,7 +468,7 @@ const ChatHomePage = () => {
           </div>
         )}
       </div>
-    </div>}</>
+    </div>
   );
 };
 

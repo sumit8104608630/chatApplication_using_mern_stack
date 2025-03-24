@@ -33,7 +33,11 @@ profilePhoto:{
 contacts: [
     {
       name: String,
-      phone: String,
+      phone: {
+        type: String,
+        unique:true
+      },
+
       save_contact:{
         type:Boolean,
         default:false

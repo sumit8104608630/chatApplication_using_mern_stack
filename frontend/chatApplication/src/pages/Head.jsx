@@ -147,6 +147,7 @@ const Head = () => {
       </div>
       
       {/* Mobile menu button - ADDED HERE */}
+      {authUser&&
       <div className=" md:hidden  ">
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -165,7 +166,7 @@ const Head = () => {
           )}
         </button>
       </div>
-      
+}
     </div>
   </div>
 
