@@ -106,7 +106,7 @@ export const authStore=create((set,get)=>({
         const {authUser} = get()
         if (!authUser || get().socket?.connected) return;
         
-        const socket = io(`http://localhost:9000`, {
+        const socket = io(`${axiosInstance}`, {
           query: { userId: authUser._id }
         })
         
