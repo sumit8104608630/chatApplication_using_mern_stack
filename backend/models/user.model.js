@@ -35,7 +35,6 @@ contacts: [
       name: String,
       phone: {
         type: String,
-        unique:true
       },
 
       save_contact:{

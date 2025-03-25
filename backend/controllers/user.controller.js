@@ -98,35 +98,75 @@ const user_logout=asyncHandler(async(req,res)=>{
 
 
 //let's create the feature to add the contact no in the user 
-const add_contact_no=asyncHandler(async(req,res)=>{
+const add_contact_no = asyncHandler(async (req, res) => {
     try {
-        const {id}=req.user;
-        const {phoneNumber,name}=req.body;
-        const user=await User.findById(id);
-        if(!user){
-            return res.status(400).json(new apiResponse(400,{},"unauthorized"));
+        const { id } = req.user;
+        const { phoneNumber, name } = req.body;
+
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(400).json(new apiResponse(400, {}, "Unauthorized"));
         }
-        const contactUser=await User.findOne({phoneNumber:phoneNumber});
-        if(!contactUser){
-            return res.status(404).json(new apiResponse(404,{},"user doesn't exist in chat app"))
+
+        const contactUser = await User.findOne({ phoneNumber });
+        if (!contactUser) {
+            return res.status(404).json(new apiResponse(404, {}, "User doesn't exist in chat app"));
         }
+
+        const contactInOtherUser = contactUser.contacts?.some(item => item.phone === user.phoneNumber);
+
+        const existingContact = user.contacts?.find(item => item.phone === phoneNumber);
+
+        if (existingContact) {
+            if (!existingContact.save_contact) {
+                const updatedUser = await User.findByIdAndUpdate(
+                    id,
+                    {
+                        $set: {
+                            "contacts.$[elem].save_contact": true,
+                            "contacts.$[elem].name": name
+                        }
+                    },
+                    { arrayFilters: [{ "elem.userId": contactUser._id }], new: true }
+                );
+
+                if (!contactInOtherUser) {
+                    await User.findByIdAndUpdate(contactUser._id, {
+                        $push: { contacts: { name: user.name, phone: user.phoneNumber, userId: id } }
+                    });
+                }
+
+                return res.status(200).json(new apiResponse(200, { contact: updatedUser }, "Contact updated successfully"));
+            }
+
+            return res.status(400).json(new apiResponse(400, {}, "Contact already exists"));
+        }
+
+        // Add new contact to the user's contact list
         const newContact = {
-            name: name,
+            name,
             phone: phoneNumber,
-            save_contact:true,
-            userId: contactUser ? contactUser._id : null, // Store user ID if registered
+            save_contact: true,
+            userId: contactUser._id
         };
-        if(user.contacts?.some(item=>item.phone==phoneNumber)){
-            return res.status(400).json(new apiResponse(400,{},"contact already exist"))
+
+        await User.findByIdAndUpdate(id, { $push: { contacts: newContact } }, { new: true });
+
+        // If the current user is not in contactUser's contacts, add them
+        if (!contactInOtherUser) {
+            await User.findByIdAndUpdate(contactUser._id, {
+                $push: { contacts: { name: user.name, phone: user.phoneNumber, userId: id } }
+            });
         }
-        await User.findByIdAndUpdate(id,{$push:{contacts:newContact}},{new:true})
-        if(contactUser.contacts?.some(item=>item.phone==user.phoneNumber))
-        await User.findByIdAndUpdate(contactUser._id,{$push:{contacts:{name:user.name,phone:user.phoneNumber,userId:id}}})
+
         return res.status(200).json(new apiResponse(200, { contact: newContact }, "Contact added successfully"));
+
     } catch (error) {
-        console.log(error)
+        console.error("Error adding contact:", error);
+        return res.status(500).json(new apiResponse(500, {}, "Internal Server Error"));
     }
-})
+});
+
 
 // let write the function to get all contact with populating information 
 const get_all_contacts = asyncHandler(async (req, res) => {
@@ -164,11 +204,12 @@ const check_user_present = asyncHandler(async (req, res) => {
         const { phoneNumber } = req.body;
         const {id}=req.user
         const current_user = await User.findById(id);
+       const contact= current_user.contacts.find(item=>item.phone==phoneNumber);
         if(current_user.phoneNumber==phoneNumber){
             return res.status(402).json(new apiResponse(402, {}, "it is you"))
         }
-        else if(current_user.contacts.some(item=>item.phone==phoneNumber)){
-            return res.status(403).json(new apiResponse(403, {}, "it is you"))
+        else if(!contact.save_contact){
+            return res.status(201).json(new apiResponse(201, {}, "it is you"))
         }
         
         if (!phoneNumber) {

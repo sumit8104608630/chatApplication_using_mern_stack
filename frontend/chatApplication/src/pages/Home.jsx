@@ -42,8 +42,11 @@ const ChatHomePage = () => {
   }, [selectedUser, unSubScribe, subScribe]);
 
   useEffect(() => {
-    if (scrollRef.current && messages) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth"
+      });
     }
   }, [messages]);
 
