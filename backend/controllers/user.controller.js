@@ -56,7 +56,7 @@ const user_login=asyncHandler(async(req,res)=>{
        const token=await User.matchPasswordGenerateToken(phoneNumber,password)
        if(token.success){
         return res.status(400).json(new apiResponse(400,{},token.message))
-       }
+       }    
        
        res.status(200).cookie('accessToken',token.token,{
         httpOnly: true,   // Prevents client-side access
@@ -207,6 +207,9 @@ const check_user_present = asyncHandler(async (req, res) => {
         const {id}=req.user
         const current_user = await User.findById(id);
        const contact= current_user.contacts.find(item=>item.phone==phoneNumber);
+       if(!contact){
+        return res.status(400).json(new apiResponse(400, {}, "User not found"))
+       }
         if(current_user.phoneNumber==phoneNumber){
             return res.status(402).json(new apiResponse(402, {}, "it is you"))
         }
