@@ -207,14 +207,15 @@ const check_user_present = asyncHandler(async (req, res) => {
         const {id}=req.user
         const current_user = await User.findById(id);
        const contact= current_user.contacts.find(item=>item.phone==phoneNumber);
-       if(!contact){
-        return res.status(400).json(new apiResponse(400, {}, "User not found"))
-       }
+       
         if(current_user.phoneNumber==phoneNumber){
             return res.status(402).json(new apiResponse(402, {}, "it is you"))
         }
-        else if(!contact.save_contact){
-            return res.status(201).json(new apiResponse(201, {}, "it is you"))
+        
+        else if(contact){
+            if(!contact.save_contact){
+            return res.status(403).json(new apiResponse(403, {}, "it is you"))
+            }
         }
         
         if (!phoneNumber) {

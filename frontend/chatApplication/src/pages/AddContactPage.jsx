@@ -21,10 +21,6 @@ const AddContactPage = () => {
 const checkUser=async()=>{
     try {
         const response=await axiosInstance.post(`/user/check`,contactData);
-        if(response.status==201){
-          setUserAvailable(response.data.message)
-          setUserAvailable("Oops! This contact already exists in your list. You just need to save it to keep in touch. 😊✨")
-      }
         setUserAvailable(response.data.message)
     } catch (error) {
         if(error.response.status==404){
@@ -34,7 +30,9 @@ const checkUser=async()=>{
         else if(error.response.status==402){
             setUserAvailable("Arre! Apne aap se baat karne lage? 😆 Koi aur number daalo!")
         }
-        
+        else if(error.response.status==403){
+            setUserAvailable("Oops! This contact already exists in your list. You just need to save it to keep in touch. 😊✨")
+        }
         else{
             setUserAvailable("")
         }
