@@ -59,11 +59,13 @@ const user_login=asyncHandler(async(req,res)=>{
        }
        
        res.status(200).cookie('accessToken',token.token,{
-        httpOnly:true,
-        secure:true,
+        httpOnly: true,   // Prevents client-side access
+        secure: true,     // Send cookie only over HTTPS
+        sameSite: "None", 
     }).cookie("refresh_token",token.refresh_token,{
-        httpOnly:true,
-        secure:true,
+        httpOnly: true,   // Prevents client-side access
+        secure: true,     // Send cookie only over HTTPS
+        sameSite: "None", 
     }).json(new apiResponse(
         200,user,"user logged in successfully"
     ))
