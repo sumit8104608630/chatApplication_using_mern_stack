@@ -11,7 +11,7 @@ import { authStore } from '../store/userAuth.store.js';
 const ChatHomePage = () => {
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
-  const { get_online_user,activeUser,selectUser,getActiveUser,deleteActiveUser,authUser } = authStore();
+  const { get_online_user, activeUser, selectUser, getActiveUser, deleteActiveUser, authUser } = authStore();
   const { 
     contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,
     messages, setSelectedUser, subScribe, selectedUser, unSubScribe
@@ -35,11 +35,9 @@ const ChatHomePage = () => {
     get_all_contacts();
   }, [get_all_contacts]);
 
- useEffect(()=>{
- 
-  deleteActiveUser(activeUser)
-  
- },[])
+  useEffect(() => {
+    deleteActiveUser(activeUser);
+  }, []);
   
   useEffect(() => {
     subScribe();
@@ -49,7 +47,7 @@ const ChatHomePage = () => {
         deleteActiveUser(activeContact.id);
       }
     }
-  }, [selectedUser, unSubScribe, subScribe,activeContact,deleteActiveUser]);
+  }, [selectedUser, unSubScribe, subScribe, activeContact, deleteActiveUser]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -59,6 +57,28 @@ const ChatHomePage = () => {
       });
     }
   }, [messages]);
+
+  // Determine message status for contact
+  const getContactMessageStatus = (contact) => {
+    // Find messages related to this contact
+    const contactMessages = messages.filter(
+      msg => msg.sender === contact.userId._id || msg.receiver === contact.userId._id
+    );
+    
+    if (contactMessages.length === 0) return null;
+    
+    const latestMessage = contactMessages[contactMessages.length - 1];
+    
+    // Check if the message is unread (not seen by the current user)
+    const isUnread = latestMessage.status !== 'seen' && !latestMessage.isOwn;
+    
+    return {
+      latestMessage: latestMessage.text,
+      isUnread: isUnread,
+      status: latestMessage.status
+    };
+  };
+
   const handleContactClick = (contactId) => {
     // Delete previous active user if exists
     if (activeContact) {
@@ -93,14 +113,14 @@ const ChatHomePage = () => {
   const handleSendMessage = () => {
     try {
       const messageToSend = { ...message };
-      if (get_online_user.includes(activeContact?._id)&&activeUser) {
+      if (get_online_user.includes(activeContact?._id) && activeUser) {
         if (activeUser.includes(authUser._id)) {
           message["status"] = "seen";
         } else {
           message["status"] = "received";
         }
       }
-      else{
+      else {
         message["status"] = "sent";
       }
       
@@ -188,15 +208,31 @@ const ChatHomePage = () => {
     }
   };
 
+  // Render notification indicator
+  const renderNotificationIndicator = (contact) => {
+    const messageStatus = getContactMessageStatus(contact);
+    
+    if (!messageStatus) return null;
+    
+    if (messageStatus.isUnread) {
+      return (
+        <span className="bg-teal-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+          {contact.unread || 1}
+        </span>
+      );
+    }
+    
+    return null;
+  };
 
-
-  useEffect(()=>{
+  useEffect(() => {
     getActiveUser()
-  },[getActiveUser])
-console.log(activeUser)
+  }, [getActiveUser]);
+
   if (contactsLoading) {
     return <>Loading...</>;
   }
+
   return (
     <div className="h-screen bg-[#1a1e23] mt-16 flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
@@ -220,52 +256,55 @@ console.log(activeUser)
         
         {/* Contacts List */}
         <div className="flex-1 overflow-y-auto">
-          {contacts.map((contact) => (
-            <div 
-              key={contact._id}
-              className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact === contact._id ? 'bg-gray-800' : ''}`}
-              onClick={() => handleContactClick(contact.userId)}
-            >
-              <div className="flex items-center">
-                <div className="relative">
-                  {contact.save_contact ?
-                    <img
-                      src={contact.userId.profilePhoto}
-                      alt={contact.userId.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    /> :
-                    <img
-                      src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
-                      alt=""
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  }
-                  {get_online_user.includes(contact.userId._id) && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
-                  )}
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="flex justify-between items-center">
+          {contacts.map((contact) => {
+            const messageStatus = getContactMessageStatus(contact);
+            
+            return (
+              <div 
+                key={contact._id}
+                className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact === contact._id ? 'bg-gray-800' : ''}`}
+                onClick={() => handleContactClick(contact.userId)}
+              >
+                <div className="flex items-center">
+                  <div className="relative">
                     {contact.save_contact ?
-                      <h3 className="text-white font-medium">{contact.name}</h3> :
-                      <h3 className="text-white font-medium">{contact.phone}</h3>
+                      <img
+                        src={contact.userId.profilePhoto}
+                        alt={contact.userId.name}
+                        className="w-12 h-12 rounded-full object-cover"
+                      /> :
+                      <img
+                        src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
+                        alt=""
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
                     }
-                    {get_online_user.includes(contact.userId._id)?<span className="text-xs text-green-500">Online</span>:
-                    <span className="text-xs text-gray-400">{formatLastSeen(contact.userId.lastSeen)}</span>
-                    }
-                  </div>
-                  <div className="flex justify-between items-center mt-1">
-                    <p className="text-sm text-gray-400 truncate max-w-xs">{contact.userId.status || "Hey there! I'm using ChatApp."}</p>
-                    {contact.unread > 0 && (
-                      <span className="bg-teal-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {contact.unread}
-                      </span>
+                    {get_online_user.includes(contact.userId._id) && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
                     )}
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between items-center">
+                      {contact.save_contact ?
+                        <h3 className="text-white font-medium">{contact.name}</h3> :
+                        <h3 className="text-white font-medium">{contact.phone}</h3>
+                      }
+                      {get_online_user.includes(contact.userId._id) ? 
+                        <span className="text-xs text-green-500">Online</span> :
+                        <span className="text-xs text-gray-400">{formatLastSeen(contact.userId.lastSeen)}</span>
+                      }
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <p className={`text-sm truncate max-w-xs ${messageStatus?.isUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
+                        {messageStatus?.latestMessage || contact.userId.status || "Hey there! I'm using ChatApp."}
+                      </p>
+                      {renderNotificationIndicator(contact)}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
