@@ -4,6 +4,7 @@ import {io} from "socket.io-client"
 const API_URL = import.meta.env.VITE_DATA_BASE_LINK; // Your backend URL
 
 export const authStore=create((set,get)=>({
+    activeUser:[],
     authUser:null,
     get_online_user:[],
     isSigningUp:false,
@@ -130,5 +131,33 @@ export const authStore=create((set,get)=>({
       } catch (error) {
         console.log(error)
       }
+    },
+    // let's create method in which we say that which one we click on usr
+    selectUser:async(connect_id)=>{
+      try {
+        const socket = io(API_URL, {
+          query: { selected_id: connect_id }
+        });
+        socket.on("getActiveUser",(activeUser)=>{
+          set({ activeUser: activeUser })
+        })
+      } catch (error) {
+        console.log(error)
+      }
+    },
+    getActiveUser:async()=>{
+      try {
+        const socket=io(API_URL)
+        socket.on("getActiveUser",(activeUser)=>{
+          set({ activeUser: activeUser })
+        })
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    ,deleteActiveUser:async(userId)=>{
+      const {socket}=get();
+      socket.emit('delete_active_user',userId);
+
     }
 }))

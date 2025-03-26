@@ -258,6 +258,14 @@ const update_Profile=asyncHandler(async(req,res)=>{
     } catch (error) {
         console.log(error) 
     }
+});
+
+const active_contact=asyncHandler(async(req,res)=>{
+    try {
+        
+    } catch (error) {
+        console.log(error)
+    }
 })
 
 

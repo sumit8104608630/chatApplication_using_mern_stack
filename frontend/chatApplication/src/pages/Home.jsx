@@ -11,13 +11,12 @@ import { authStore } from '../store/userAuth.store.js';
 const ChatHomePage = () => {
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
-  
-  const { get_online_user } = authStore();
+  const { get_online_user,activeUser,selectUser,getActiveUser,deleteActiveUser,authUser } = authStore();
   const { 
     contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,
     messages, setSelectedUser, subScribe, selectedUser, unSubScribe
   } = messageStore();
-  
+
   const [message, setMessage] = useState({
     receiverId: "",
     message: "",
@@ -36,10 +35,21 @@ const ChatHomePage = () => {
     get_all_contacts();
   }, [get_all_contacts]);
 
+ useEffect(()=>{
+ 
+  deleteActiveUser(activeUser)
+  
+ },[])
+  
   useEffect(() => {
     subScribe();
-    return () => unSubScribe();
-  }, [selectedUser, unSubScribe, subScribe]);
+    return () => {
+      unSubScribe();
+      if(activeContact){
+        deleteActiveUser(activeContact.id);
+      }
+    }
+  }, [selectedUser, unSubScribe, subScribe,activeContact,deleteActiveUser]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -49,9 +59,15 @@ const ChatHomePage = () => {
       });
     }
   }, [messages]);
-
   const handleContactClick = (contactId) => {
+    // Delete previous active user if exists
+    if (activeContact) {
+      deleteActiveUser(activeContact._id);
+    }
+  
+    // Set new selected user
     setSelectedUser(contactId._id);
+    selectUser(contactId._id);
     setActiveContact(contactId);
     setMessage((prev) => ({ ...prev, receiverId: contactId._id }));
     getAll_messages(contactId._id);
@@ -61,6 +77,7 @@ const ChatHomePage = () => {
   const handleBackToContacts = () => {
     setSelectedUser(null);
     setShowContactsOnMobile(true);
+    deleteActiveUser(activeContact._id)
   };
 
   const formatLastSeen = (timestamp) => {
@@ -76,14 +93,17 @@ const ChatHomePage = () => {
   const handleSendMessage = () => {
     try {
       const messageToSend = { ...message };
-      if (selectedUser) {
-        if (get_online_user.includes(selectedUser)) {
+      if (get_online_user.includes(activeContact?._id)&&activeUser) {
+        if (activeUser.includes(authUser._id)) {
           message["status"] = "seen";
         } else {
           message["status"] = "received";
         }
       }
-     
+      else{
+        message["status"] = "sent";
+      }
+      
       const new_format = new FormData();
       new_format.append("message", messageToSend.message);
       new_format.append("receiverId", message.receiverId);
@@ -168,11 +188,15 @@ const ChatHomePage = () => {
     }
   };
 
+
+
+  useEffect(()=>{
+    getActiveUser()
+  },[getActiveUser])
+console.log(activeUser)
   if (contactsLoading) {
     return <>Loading...</>;
   }
-
-
   return (
     <div className="h-screen bg-[#1a1e23] mt-16 flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
@@ -346,10 +370,14 @@ const ChatHomePage = () => {
                           )}
                         </div>
                         <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>
+                    {message?.isOwn&&
                           <span className='mr-1 text-center'>
-                            {get_online_user.includes(activeContact?._id)?<CheckCheck className="h-3 w-3 ml-1 inline text-teal-400" />:
-                            renderMessageStatus(message?.status, message?.isOwn)}
+                            {message.status!="seen"&&get_online_user.includes(activeContact._id)&&!activeUser.includes(authUser?._id)? <CheckCheck className="h-3 w-3 ml-1 inline text-gray-400" />:<>
+                            {activeUser.includes(authUser?._id)?<CheckCheck className="h-3 w-3 ml-1 inline text-teal-400" />:
+                            renderMessageStatus(message?.status, message?.isOwn)}</>
+}
                           </span>
+                }
                           {message.time}
                         </p>
                       </div>

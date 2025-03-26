@@ -15,18 +15,28 @@ export const io=new Server(server,{
     }
 })
 const userSocketMap={}//{userId:socketId}
-
+const active={}// selected id 
 // Socket.io event handling when a client connects
 io.on("connection",(socket)=>{
     console.log(`A user connected: ${socket.id}`);
     
     const userId=socket.handshake.query.userId// this userId will come from the frontend
-    console.log(userId)
+   // console.log(userId)
     if(userId) {
         userSocketMap[userId]=socket.id
     }
+    const selectedId=socket.handshake.query.selected_id
+    if(selectedId){
+       console.log(selectedId)
+        active[selectedId]=socket.id
+    }
     io.emit("onlineUser",Object.keys(userSocketMap))
-
+    io.emit("getActiveUser",Object.keys(active))
+    socket.on('delete_active_user', (userId) => {
+        delete active[userId];
+        // Broadcast updated active users list
+        io.emit('getActiveUser', Object.keys(active));
+    });
     socket.on('disconnect', () => {
         console.log('disconnected')
         delete userSocketMap[userId]
@@ -39,6 +49,10 @@ io.on("connection",(socket)=>{
 // let make function who return the online id when messaging the online user
 export  function getOnlineUserIds(userId) {
     return userSocketMap[userId]
+}
+//let return selected user id
+export function getActiveUserId(userId) {
+    return active[userId]
 }
 
 
