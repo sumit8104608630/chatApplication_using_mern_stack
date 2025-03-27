@@ -9,6 +9,7 @@ import {uploadImageFile,uploadDocFile} from "../util/cloudinary.js"
 import mongoose from "mongoose";
 import {getOnlineUserIds, io} from "../src/app.js"
 import { text } from "stream/consumers";
+import { error } from "console";
 // let's create function to store messages
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,7 +79,6 @@ const store_messages=asyncHandler(async(req,res)=>{
 // now make the function to get all the message from the user  by separating the sender and receiver
 const get_all_messages = asyncHandler(async(req, res) => {
     try {
-        console.log("call")
         const {id} = req.user;
         const receiverId = req.params;
         
@@ -86,14 +86,7 @@ const get_all_messages = asyncHandler(async(req, res) => {
         if (!receiverId.id) {
             return res.status(400).json(new apiResponse(400, "", "Receiver ID is required"));
         }
-        await Message.updateMany(
-            {
-                sender: new mongoose.Types.ObjectId(receiverId),
-                receiver: new mongoose.Types.ObjectId(id),
-            },
-            { $set: { status: "seen" } }
-        );
-
+   
         
         const message = await Message.aggregate([
             {   
@@ -159,9 +152,63 @@ const get_all_messages = asyncHandler(async(req, res) => {
     }
 });
 
+//get all message for notification
 
+const update_message_status = asyncHandler(async (req, res) => {
+    try {
+        const { id } = req.user;
+        const { activeUser } = req.body;
+        
+        // Validate input
+        if (!Array.isArray(activeUser)) {
+            return res.status(400).json(new apiResponse(400, null, "Invalid active user data"));
+        }
+        
+        const senderId = activeUser.find(element => element === id);
+        // Optional: Only update if the user is in the active users list
+        const updateCondition = senderId 
+            ? { $or: [{ receiver: id }, { sender: id }] }
+            : { $or: [{ receiver: id }, { sender: id }], status: { $ne: 'seen' } };
+        
+        const message = await Message.updateMany(
+            updateCondition,
+            { $set: { status: 'seen' } }
+        );
+        
+        return res.status(200).json(new apiResponse(200, senderId, "Updated successfully"));
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json(new apiResponse(500, null, "Error updating message status"));
+    }
+});
+
+const update_message_array_received = asyncHandler(async (req, res) => {
+    try {
+        console.log("call")
+        const { id } = req.user;
+        const { activeContact } = req.body;
+
+        const updateCondition = { 
+            receiver: id, // Changed to the current user's ID
+            sender: { $ne: activeContact }, // Ensure sender is not the active contact
+            status: { $nin: ['received', 'seen'] } 
+        };
+
+        const message = await Message.updateMany(
+            updateCondition,
+            { $set: { status: 'received' } }
+        );
+
+        return res.status(200).json(new apiResponse(200, activeContact, "Updated successfully"));
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json(new apiResponse(500, null, "Error updating message status"));
+    }
+});
 
 export {
     store_messages,
-    get_all_messages
+    get_all_messages,
+    update_message_status,
+    update_message_array_received
 }

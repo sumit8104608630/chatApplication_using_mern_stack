@@ -21,6 +21,17 @@ export const messageStore=create((set,get)=>({
 
         }
     },
+    update_message_array_received:async(activeContact,message)=>{
+        try {
+            console.log(activeContact)
+
+            const response=await axiosInstance.post(`/message/update_message_array_received`,{activeContact});
+            console.log(response);
+            console.log(activeContact)
+        } catch (error) {
+            console.log(error)
+        }
+    },
     send_message:async(data)=>{
         try {
             const {messages}=get();

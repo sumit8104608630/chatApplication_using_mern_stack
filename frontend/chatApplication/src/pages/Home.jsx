@@ -14,7 +14,7 @@ const ChatHomePage = () => {
   const { get_online_user, activeUser, selectUser, getActiveUser, deleteActiveUser, authUser } = authStore();
   const { 
     contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,
-    messages, setSelectedUser, subScribe, selectedUser, unSubScribe
+    messages, setSelectedUser, subScribe, selectedUser, unSubScribe,update_message_array_received
   } = messageStore();
 
   const [message, setMessage] = useState({
@@ -57,6 +57,19 @@ const ChatHomePage = () => {
       });
     }
   }, [messages]);
+
+// updating the message status
+
+useEffect(()=>{
+if(authUser){
+  update_message_array_received(authUser._id);
+}
+},[authUser,update_message_array_received])
+
+
+
+
+
 
   // Determine message status for contact
   const getContactMessageStatus = (contact) => {
@@ -411,10 +424,9 @@ const ChatHomePage = () => {
                         <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>
                     {message?.isOwn&&
                           <span className='mr-1 text-center'>
-                            {message.status!="seen"&&get_online_user.includes(activeContact._id)&&!activeUser.includes(authUser?._id)? <CheckCheck className="h-3 w-3 ml-1 inline text-gray-400" />:<>
-                            {activeUser.includes(authUser?._id)?<CheckCheck className="h-3 w-3 ml-1 inline text-teal-400" />:
-                            renderMessageStatus(message?.status, message?.isOwn)}</>
-}
+   {
+                            renderMessageStatus(message?.status, message?.isOwn)}
+
                           </span>
                 }
                           {message.time}

@@ -1,6 +1,7 @@
 import {create} from "zustand"
 import { axiosInstance } from "../lib/axios"
 import {io} from "socket.io-client"
+import { messageStore } from "./message.store";
 const API_URL = import.meta.env.VITE_DATA_BASE_LINK; // Your backend URL
 
 export const authStore=create((set,get)=>({
@@ -105,6 +106,7 @@ export const authStore=create((set,get)=>({
     // let's create socket.io connect method
     connection: () => {
       try {
+        const messages=messageStore.getState().messages;
         const {authUser} = get()
         if (!authUser || get().socket?.connected) return;
         
