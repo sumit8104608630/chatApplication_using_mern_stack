@@ -70,10 +70,13 @@ export const messageStore=create((set,get)=>({
     subScribe:()=>{
         const socket=authStore.getState().socket;
         if(!socket)return
+        const{selectedUser}=get()
         socket.on('newMessage',(data)=>{
+            if(data.sender==selectedUser||data.receiver==selectedUser){
             const {messages}=get();
-
+            
             set({messages:[...messages,data]})
+            }
         })
     },
     unSubScribe:()=>{
@@ -89,6 +92,7 @@ export const messageStore=create((set,get)=>({
     locallyUpdate_toSeen: async() => {
         try {
             const {messages} = get() // Remove the await here
+            console.log("yes")
             let update_message = messages.map(message => 
                  message.status != "seen" && message.isOwn
                 ? {...message, status: "seen"} 

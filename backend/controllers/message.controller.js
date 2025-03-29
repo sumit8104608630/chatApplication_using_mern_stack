@@ -184,7 +184,6 @@ const update_message_status = asyncHandler(async (req, res) => {
 
 const update_message_array_received = asyncHandler(async (req, res) => {
     try {
-        console.log("call")
         const { id } = req.user;
         const { activeContact } = req.body;
 

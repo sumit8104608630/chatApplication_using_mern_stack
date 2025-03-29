@@ -158,11 +158,11 @@ export const authStore=create((set,get)=>({
     }
     ,deleteActiveUser:async(userId)=>{
       const {socket}=get();
+      console.log(userId)
       socket.emit('delete_active_user',userId);
     },
-    delete_all_previous_activeUser:async(activeContact)=>{
+    delete_all_previous_activeUser:async()=>{
       const {socket}=get();
-      console.log(activeContact)
-      socket.emit('delete_all_previous_activeUser',activeContact);
+      socket.emit('delete_all_previous_activeUser');
     }
 }))

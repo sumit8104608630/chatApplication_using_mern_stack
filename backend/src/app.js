@@ -39,7 +39,7 @@ io.on("connection",(socket)=>{
     });
     socket.on('delete_all_previous_activeUser', (activeContact) => {
         active={};
-        active[activeContact]=socket.id
+        
         // Broadcast updated active users list
         io.emit('getActiveUser', Object.keys(active));
     });

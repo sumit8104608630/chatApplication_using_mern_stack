@@ -96,8 +96,7 @@ if(authUser){
     if(get_online_user.includes(contactId._id)){
       locallyUpdateMessage(contactId._id)
     }
-    locallyUpdate_toSeen()
-
+   
     if (activeContact) {
       deleteActiveUser(activeContact._id);
     }
@@ -117,20 +116,25 @@ if(authUser){
     setShowContactsOnMobile(false);
   };
 
-useEffect(()=>{
-  if(activeUser.includes(activeContact?._id)){
-  locallyUpdate_toSeen()
-  }
-  return   locallyUpdate_toSeen()
-
-},[activeUser,activeContact,locallyUpdate_toSeen])
-
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-
-    // First delete the current active user
-    delete_all_previous_activeUser(authUser?._id);
+    setIsMounted(true);
+  }, []);
   
+  useEffect(() => {
+    if (isMounted && activeUser.includes(authUser?._id)) {
+      locallyUpdate_toSeen()
+    }
+  }, [isMounted, activeUser, authUser?._id, locallyUpdate_toSeen])
+console.log(activeUser)
+
+  useEffect(() => {
+    deleteActiveUser(activeContact?._id);
+    // First delete the current active user
+    return()=>        delete_all_previous_activeUser();
+
+
 }, []);
 
 

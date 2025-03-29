@@ -4,7 +4,8 @@ import { Menu, X, MessageSquare, Bell, Search, Users, Settings, User } from "luc
 import { authStore } from "../store/userAuth.store";
 import { axiosInstance } from "../lib/axios";
 const Head = () => {
-  const {authUser,checkAuth,isCheckingAuth,logout} = authStore();
+
+  const {authUser,checkAuth,isCheckingAuth,logout,deleteActiveUser} = authStore();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -32,6 +33,7 @@ const Head = () => {
   }, []);
 
   const handleLogout=async()=>{
+    deleteActiveUser(authUser?._id)
     logout(navigate)
   }
 
