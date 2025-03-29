@@ -106,7 +106,6 @@ export const authStore=create((set,get)=>({
     // let's create socket.io connect method
     connection: () => {
       try {
-        const messages=messageStore.getState().messages;
         const {authUser} = get()
         if (!authUser || get().socket?.connected) return;
         
@@ -160,6 +159,10 @@ export const authStore=create((set,get)=>({
     ,deleteActiveUser:async(userId)=>{
       const {socket}=get();
       socket.emit('delete_active_user',userId);
-
+    },
+    delete_all_previous_activeUser:async(activeContact)=>{
+      const {socket}=get();
+      console.log(activeContact)
+      socket.emit('delete_all_previous_activeUser',activeContact);
     }
 }))

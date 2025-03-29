@@ -15,7 +15,7 @@ export const io=new Server(server,{
     }
 })
 const userSocketMap={}//{userId:socketId}
-const active={}// selected id 
+let active={}// selected id 
 // Socket.io event handling when a client connects
 io.on("connection",(socket)=>{
     console.log(`A user connected: ${socket.id}`);
@@ -34,6 +34,12 @@ io.on("connection",(socket)=>{
     io.emit("getActiveUser",Object.keys(active))
     socket.on('delete_active_user', (userId) => {
         delete active[userId];
+        // Broadcast updated active users list
+        io.emit('getActiveUser', Object.keys(active));
+    });
+    socket.on('delete_all_previous_activeUser', (activeContact) => {
+        active={};
+        active[activeContact]=socket.id
         // Broadcast updated active users list
         io.emit('getActiveUser', Object.keys(active));
     });

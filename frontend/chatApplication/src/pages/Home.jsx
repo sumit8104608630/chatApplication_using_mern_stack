@@ -11,10 +11,10 @@ import { authStore } from '../store/userAuth.store.js';
 const ChatHomePage = () => {
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
-  const { get_online_user, activeUser, selectUser, getActiveUser, deleteActiveUser, authUser } = authStore();
+  const { get_online_user, activeUser, selectUser, getActiveUser, deleteActiveUser, authUser,delete_all_previous_activeUser } = authStore();
   const { 
-    contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,
-    messages, setSelectedUser, subScribe, selectedUser, unSubScribe,update_message_array_received
+    contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,
+    messages, setSelectedUser, subScribe, selectedUser, unSubScribe,update_message_array_received,locallyUpdateMessage
   } = messageStore();
 
   const [message, setMessage] = useState({
@@ -35,9 +35,9 @@ const ChatHomePage = () => {
     get_all_contacts();
   }, [get_all_contacts]);
 
-  useEffect(() => {
-    deleteActiveUser(activeUser);
-  }, []);
+// Add this useEffect to handle deletion of previous active users when the page loads
+
+
   
   useEffect(() => {
     subScribe();
@@ -62,10 +62,9 @@ const ChatHomePage = () => {
 
 useEffect(()=>{
 if(authUser){
-  update_message_array_received(authUser._id);
+  update_message_array_received(authUser._id,get_online_user);
 }
 },[authUser,update_message_array_received])
-
 
 
 
@@ -94,8 +93,19 @@ if(authUser){
 
   const handleContactClick = (contactId) => {
     // Delete previous active user if exists
+    if(get_online_user.includes(contactId._id)){
+      locallyUpdateMessage(contactId._id)
+    }
+    locallyUpdate_toSeen()
+
     if (activeContact) {
       deleteActiveUser(activeContact._id);
+    }
+    
+
+
+    if(get_online_user.includes(authUser._id)){
+        update_message_array_to_seen(contactId._id)
     }
   
     // Set new selected user
@@ -107,11 +117,36 @@ if(authUser){
     setShowContactsOnMobile(false);
   };
 
+useEffect(()=>{
+  if(activeUser.includes(activeContact?._id)){
+  locallyUpdate_toSeen()
+  }
+},[activeUser,activeContact,locallyUpdate_toSeen])
+
+
+  useEffect(() => {
+
+    // First delete the current active user
+    delete_all_previous_activeUser(authUser?._id);
+  
+}, []);
+
+
+
+
+  useEffect(()=>{
+    if(get_online_user.includes(activeContact?._id)){
+      locallyUpdateMessage(activeContact?._id)
+    }
+  },[get_online_user,activeContact])
+
   const handleBackToContacts = () => {
     setSelectedUser(null);
     setShowContactsOnMobile(true);
     deleteActiveUser(activeContact._id)
   };
+
+
 
   const formatLastSeen = (timestamp) => {
     if (!timestamp) return "Unknown";
@@ -127,7 +162,7 @@ if(authUser){
     try {
       const messageToSend = { ...message };
       if (get_online_user.includes(activeContact?._id) && activeUser) {
-        if (activeUser.includes(authUser._id)) {
+        if (activeUser.includes(authUser?._id)) {
           message["status"] = "seen";
         } else {
           message["status"] = "received";
@@ -242,6 +277,7 @@ if(authUser){
     getActiveUser()
   }, [getActiveUser]);
 
+  
   if (contactsLoading) {
     return <>Loading...</>;
   }
@@ -424,9 +460,10 @@ if(authUser){
                         <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>
                     {message?.isOwn&&
                           <span className='mr-1 text-center'>
-   {
-                            renderMessageStatus(message?.status, message?.isOwn)}
-
+                                             {/* {message.status!="seen"&&get_online_user.includes(activeContact._id)&&!activeUser.includes(authUser?._id)? <CheckCheck className="h-3 w-3 ml-1 inline text-gray-400" />:<>
+                             {activeUser.includes(authUser?._id)?<CheckCheck className="h-3 w-3 ml-1 inline text-teal-400" />: */
+                             renderMessageStatus(message?.status, message?.isOwn)
+ }
                           </span>
                 }
                           {message.time}

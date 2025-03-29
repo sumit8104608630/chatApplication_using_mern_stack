@@ -21,13 +21,31 @@ export const messageStore=create((set,get)=>({
 
         }
     },
-    update_message_array_received:async(activeContact,message)=>{
+    update_message_array_received:async(activeContact)=>{
         try {
-            console.log(activeContact)
-
+            
             const response=await axiosInstance.post(`/message/update_message_array_received`,{activeContact});
             console.log(response);
-            console.log(activeContact)
+        } catch (error) {
+            console.log(error)
+        }
+    },
+    locallyUpdateMessage: async() => {
+        try {
+            const {messages} = get() // Remove the await here
+            let update_message = messages.map(message => 
+                 message.status == "sent" && message.isOwn
+                ? {...message, status: "received"} 
+                : message
+            )
+            set({ messages: update_message });
+        } catch (error) {
+            console.log(error)
+        }
+    },
+    update_message_array_to_seen:async(contact_id)=>{
+        try {
+            const response=await axiosInstance.post(`/message/update_message_array_seen`,{contact_id});
         } catch (error) {
             console.log(error)
         }
@@ -67,5 +85,18 @@ export const messageStore=create((set,get)=>({
     setSelectedUser:(selectedUserId)=>{
         
         set({selectedUser:selectedUserId})
-    }
+    },
+    locallyUpdate_toSeen: async() => {
+        try {
+            const {messages} = get() // Remove the await here
+            let update_message = messages.map(message => 
+                 message.status != "seen" && message.isOwn
+                ? {...message, status: "seen"} 
+                : message
+            )
+            set({ messages: update_message });
+        } catch (error) {
+            console.log(error)
+        }
+    },
 }))

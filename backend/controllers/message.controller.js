@@ -206,9 +206,35 @@ const update_message_array_received = asyncHandler(async (req, res) => {
     }
 });
 
+const update_message_array_seen=asyncHandler(async(req,res)=>{
+    try {
+        const {id}=req.user;
+        const {contact_id}=req.body;
+        console.log(contact_id)
+        if(!contact_id){
+            return res.status(400).json(new apiResponse(400, null, "Invalid contact ID"));
+        }
+        const updateCondition = { 
+            receiver: id,  // Match receiver
+            sender: contact_id, // Match sender exactly
+            status: { $nin: ['seen'] } // Ensure status is not 'seen'
+        };
+        
+
+        const message = await Message.updateMany(
+            updateCondition,
+            { $set: { status: 'seen' } }
+        );
+        return res.status(200).json(new apiResponse(200, contact_id, "Updated successfully"));
+    } catch (error) {
+        console.log(error)
+    }
+})
+
 export {
     store_messages,
     get_all_messages,
     update_message_status,
-    update_message_array_received
+    update_message_array_received,
+    update_message_array_seen
 }
