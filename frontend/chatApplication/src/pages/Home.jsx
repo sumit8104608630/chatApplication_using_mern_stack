@@ -121,6 +121,8 @@ useEffect(()=>{
   if(activeUser.includes(activeContact?._id)){
   locallyUpdate_toSeen()
   }
+  return   locallyUpdate_toSeen()
+
 },[activeUser,activeContact,locallyUpdate_toSeen])
 
 
