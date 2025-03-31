@@ -134,14 +134,17 @@ export const authStore=create((set,get)=>({
       }
     },
     // let's create method in which we say that which one we click on usr
-    selectUser:async(connect_id)=>{
+    selectUser:async(connect_id,authUserId)=>{
       try {
         const socket = io(API_URL, {
-          query: { selected_id: connect_id }
+          query: { selected_id: connect_id , authUserId: authUserId}
+
         });
-        socket.on("getActiveUser",(activeUser)=>{
-          set({ activeUser: activeUser })
-        })
+        socket.on('getActiveUser', (activeUsers) => {
+          console.log("Active users updated:", activeUsers);
+          // Prevent [null] by ensuring we always have an array
+          set({ activeUser: Array.isArray(activeUsers) ? activeUsers.filter(Boolean) : [] });
+      });
       } catch (error) {
         console.log(error)
       }

@@ -98,7 +98,7 @@ if(authUser){
     }
    
     if (activeContact) {
-      deleteActiveUser(activeContact._id);
+      deleteActiveUser(authUser._id);
     }
     
 
@@ -109,7 +109,7 @@ if(authUser){
   
     // Set new selected user
     setSelectedUser(contactId._id);
-    selectUser(contactId._id);
+    selectUser(contactId._id,authUser._id);
     setActiveContact(contactId);
     setMessage((prev) => ({ ...prev, receiverId: contactId._id }));
     getAll_messages(contactId._id);
@@ -123,16 +123,27 @@ if(authUser){
   }, []);
   
   useEffect(() => {
-    if (isMounted && activeUser.includes(authUser?._id)) {
-      locallyUpdate_toSeen()
+    // Check if there's a one-way connection from activeContact to authUser
+    const fromContactToUser = activeUser?.some(
+      item => item.authUserId === activeContact?._id && item.selectedId === authUser?._id
+    );
+    
+    // Check if there's a connection from authUser to activeContact
+    const fromUserToContact = activeUser?.some(
+      item => item.authUserId === authUser?._id && item.selectedId === activeContact?._id
+    );
+    
+    // If there's only a one-way connection from contact to user
+    if (fromContactToUser && fromUserToContact) {
+      locallyUpdate_toSeen();
     }
-  }, [isMounted, activeUser, authUser?._id, locallyUpdate_toSeen])
+  }, [isMounted, activeUser, activeContact?._id, authUser?._id, locallyUpdate_toSeen]);
 console.log(activeUser)
 
   useEffect(() => {
     deleteActiveUser(activeContact?._id);
     // First delete the current active user
-    return()=>        delete_all_previous_activeUser();
+    return()=>            deleteActiveUser(authUser?._id);
 
 
 }, []);
@@ -149,7 +160,7 @@ console.log(activeUser)
   const handleBackToContacts = () => {
     setSelectedUser(null);
     setShowContactsOnMobile(true);
-    deleteActiveUser(activeContact._id)
+    deleteActiveUser(authUser._id)
   };
 
 
@@ -168,7 +179,12 @@ console.log(activeUser)
     try {
       const messageToSend = { ...message };
       if (get_online_user.includes(activeContact?._id) && activeUser) {
-        if (activeUser.includes(authUser?._id)) {
+      const seen_bool = activeUser?.some(
+  (item) =>
+    (item.authUserId === activeContact?._id && item.selectedId === authUser?._id) &&
+    !(item.authUserId === authUser?._id && item.selectedId === activeContact?._id)
+);
+        if (seen_bool) {
           message["status"] = "seen";
         } else {
           message["status"] = "received";

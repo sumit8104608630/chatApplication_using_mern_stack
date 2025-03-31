@@ -1,4 +1,4 @@
-import {setUser,get_user,refreshToken} from "../services/authenticate.service.js"
+import {setUser,get_user,fun_refreshToken} from "../services/authenticate.service.js"
 import {apiResponse} from "../util/apiResponse.js"
 import User from "../models/user.model.js"
 import jwt from "jsonwebtoken"
@@ -28,7 +28,7 @@ return async(req,res,next)=>{
                 return res.status(401).json({ message: "Unauthorized: User not found."})
             }
             const new_accessToken=await setUser(user);
-            const new_refreshToken=await refreshToken(user);
+            const new_refreshToken=await fun_refreshToken(user);
             req.user=user;
             res.status(200).cookie('accessToken',new_accessToken,{
                 httpOnly:true,
@@ -36,14 +36,9 @@ return async(req,res,next)=>{
             }).cookie("refresh_token",new_refreshToken,{
                 httpOnly:true,
                 secure:true,
-            }).json(new apiResponse(
-                200,
-            
-                    loginUser
-                ,
-                "user logged in successfully"
-            ))
-        }
+            })
+            return next()
+        } 
         if(!user){
             return res.status(401).json({ message: "Unauthorized: User not found."})
         }

@@ -23,7 +23,7 @@ try {
 }
 }
 
-const refreshToken=async(user)=>{
+const fun_refreshToken=async(user)=>{
     if(!user){
         return {error:"user not found"};
     }
@@ -63,6 +63,6 @@ const get_user=(token)=>{
 
 export{
     setUser,
-    refreshToken,
+    fun_refreshToken,
     get_user
 }

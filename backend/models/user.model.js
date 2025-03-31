@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
 import bcrypt from "bcrypt"
-import {setUser,refreshToken} from "../services/authenticate.service.js"
+import {setUser,fun_refreshToken} from "../services/authenticate.service.js"
 const UserSchema=new mongoose.Schema({
 name:{
     type:String,
