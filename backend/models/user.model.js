@@ -85,7 +85,7 @@ try {
         return ({ success: true, message: "Invalid password" });
     }
     const token=await setUser(user);
-    const refresh_token=await refreshToken(user);
+    const refresh_token=await fun_refreshToken(user);
     return {token,refresh_token};
 } catch (error) {
     console.log(error)
