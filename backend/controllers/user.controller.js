@@ -58,14 +58,14 @@ const user_login=asyncHandler(async(req,res)=>{
         return res.status(400).json(new apiResponse(400,{},token.message))
        }    
        
-       res.status(200).cookie('accessToken',token.token,{
+      return res.status(200).cookie('accessToken',token.token,{
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'
+        sameSite: process.env.NODE_ENV === 'production' ? 'None':'Lax'
     }).cookie("refresh_token",token.refresh_token,{
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'
+        sameSite: process.env.NODE_ENV === 'production' ? 'None':'Lax'
     }).json(new apiResponse(
         200,user,"user logged in successfully"
     ))
@@ -79,7 +79,7 @@ const user_logout=asyncHandler(async(req,res)=>{
     try {
         const {id}=req.user;
         await User.findByIdAndUpdate(id,{$set:{refreshToken:undefined,lastSeen:Date.now()}});
-        res.status(200).clearCookie('accessToken',{
+       return res.status(200).clearCookie('accessToken',{
             httpOnly:true,
             secure:true,
             sameSite: "None" // Cross-origin पर काम करने के लिए
