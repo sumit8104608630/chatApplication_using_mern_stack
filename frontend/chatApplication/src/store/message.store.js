@@ -6,6 +6,8 @@ import { authStore } from "./userAuth.store"
 export const messageStore=create((set,get)=>({
     contacts:[],
     messages:[],
+    messageSendingLoading:false,
+    messageLoading:false,
     selectedUser:null,
     contactsLoading:false,
     get_all_contacts:async()=>{
@@ -52,19 +54,29 @@ export const messageStore=create((set,get)=>({
     },
     send_message:async(data)=>{
         try {
+            set({messageSendingLoading:true})
             const {messages}=get();
             const response =await axiosInstance.post(`/message/save_message`,data);
             set({messages:[...messages,response.data.data]})
+            if(response.status==201){
+                set({messageSendingLoading:false})
+            }
         } catch (error) {
             console.log(error)
+            set({messageSendingLoading:false})
         }
     },
     getAll_messages:async(receiverId)=>{
         try {
+            set({messageLoading:true})
             const response=await axiosInstance.get(`/message/get_message/${receiverId}`);
             set({messages:response.data.data})
+            if(response.status==200){
+                set({messageLoading:false})
+            }
         } catch (error) {
             console.log(error)
+            set({messageLoading:false})
         }
     },
     subScribe:()=>{
@@ -92,7 +104,6 @@ export const messageStore=create((set,get)=>({
     locallyUpdate_toSeen: async() => {
         try {
             const {messages} = get() // Remove the await here
-            console.log("yes")
             let update_message = messages.map(message => 
                  message.status != "seen" && message.isOwn
                 ? {...message, status: "seen"} 

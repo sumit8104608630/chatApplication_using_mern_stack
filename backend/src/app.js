@@ -48,7 +48,6 @@ io.on("connection", (socket) => {
     
     io.emit("onlineUser", Object.keys(userSocketMap))
     io.emit('getActiveUser', active);
-    console.log("Updated active conversations:", active);
 
     socket.on('delete_active_user', (userId) => {
         // Remove all conversation pairs involving this user
@@ -58,7 +57,6 @@ io.on("connection", (socket) => {
         
         // Broadcast updated active users list
         io.emit('getActiveUser', active);
-        console.log("Active conversations after deletion:", active);
     });
     
     socket.on('delete_all_previous_activeUser', () => {

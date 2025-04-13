@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   Search, MoreVertical, Phone, Video, Send, PlusCircle, Paperclip, 
   Smile, ArrowLeft, Menu, Image, File, X, Clock, Check, 
-  UserCircleIcon, CheckCheck, UserCircle
+  UserCircleIcon, CheckCheck, UserCircle, Download,VideoIcon
 } from 'lucide-react';
 import { messageStore } from '../store/message.store.js';
 import { authStore } from '../store/userAuth.store.js';
@@ -11,10 +11,10 @@ import { authStore } from '../store/userAuth.store.js';
 const ChatHomePage = () => {
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
-  const { get_online_user, activeUser, selectUser, getActiveUser, deleteActiveUser, authUser,delete_all_previous_activeUser } = authStore();
+  const { get_online_user, activeUser, selectUser, getActiveUser, deleteActiveUser, authUser } = authStore();
   const { 
     contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,
-    messages, setSelectedUser, subScribe, selectedUser, unSubScribe,update_message_array_received,locallyUpdateMessage
+    messages, setSelectedUser, subScribe, selectedUser, unSubScribe,messageLoading,locallyUpdateMessage,messageSendingLoading
   } = messageStore();
 
   const [message, setMessage] = useState({
@@ -22,7 +22,8 @@ const ChatHomePage = () => {
     message: "",
     status: "",
     file: null,
-    image: null
+    image: null,
+    video: null,
   });
   const [showFilePopup, setShowFilePopup] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -35,10 +36,6 @@ const ChatHomePage = () => {
     get_all_contacts();
   }, [get_all_contacts]);
 
-// Add this useEffect to handle deletion of previous active users when the page loads
-
-
-  
   useEffect(() => {
     subScribe();
     return () => {
@@ -53,23 +50,63 @@ const ChatHomePage = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
         top: scrollRef.current.scrollHeight,
-        behavior: "smooth"
+        behavior: "smooth",
       });
     }
   }, [messages]);
 
-// updating the message status
-
-useEffect(()=>{
-if(authUser){
-  update_message_array_received(authUser._id,get_online_user);
-}
-},[authUser,update_message_array_received])
-
-
-
-
-
+  // Handle file downloading
+  const handleDownloadFile = async (fileUrl) => {
+    try {
+      // Show loading indicator or feedback to user
+      console.log("Starting download...");
+      
+      // Fetch with appropriate options to bypass cache and handle CORS
+      const response = await fetch(fileUrl, {
+        method: 'GET',
+        mode: 'cors', // Try with 'no-cors' if this fails
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/octet-stream'
+        },
+        redirect: 'follow',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+      }
+  
+      // Create blob from response
+      const blob = await response.blob();
+      
+      // Get filename from URL or Content-Disposition header if available
+      let fileName = fileUrl.split('/').pop() || 'download';
+      const contentDisposition = response.headers.get('content-disposition');
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (fileNameMatch.length === 2) fileName = fileNameMatch[1];
+      }
+      
+      // Create object URL
+      const objectUrl = URL.createObjectURL(blob);
+      
+      // Create download link and trigger
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      URL.revokeObjectURL(objectUrl);
+      document.body.removeChild(link);
+      
+      console.log("Download complete!");
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
+  };
   // Determine message status for contact
   const getContactMessageStatus = (contact) => {
     // Find messages related to this contact
@@ -101,8 +138,6 @@ if(authUser){
       deleteActiveUser(authUser._id);
     }
     
-
-
     if(get_online_user.includes(authUser._id)){
         update_message_array_to_seen(contactId._id)
     }
@@ -138,18 +173,12 @@ if(authUser){
       locallyUpdate_toSeen();
     }
   }, [isMounted, activeUser, activeContact?._id, authUser?._id, locallyUpdate_toSeen]);
-console.log(activeUser)
 
   useEffect(() => {
     deleteActiveUser(activeContact?._id);
     // First delete the current active user
     return()=>            deleteActiveUser(authUser?._id);
-
-
-}, []);
-
-
-
+  }, []);
 
   useEffect(()=>{
     if(get_online_user.includes(activeContact?._id)){
@@ -162,8 +191,6 @@ console.log(activeUser)
     setShowContactsOnMobile(true);
     deleteActiveUser(authUser._id)
   };
-
-
 
   const formatLastSeen = (timestamp) => {
     if (!timestamp) return "Unknown";
@@ -180,10 +207,10 @@ console.log(activeUser)
       const messageToSend = { ...message };
       if (get_online_user.includes(activeContact?._id) && activeUser) {
       const seen_bool = activeUser?.some(
-  (item) =>
-    (item.authUserId === activeContact?._id && item.selectedId === authUser?._id) &&
-    !(item.authUserId === authUser?._id && item.selectedId === activeContact?._id)
-);
+        (item) =>
+          (item.authUserId === activeContact?._id && item.selectedId === authUser?._id) &&
+          !(item.authUserId === authUser?._id && item.selectedId === activeContact?._id)
+      );
         if (seen_bool) {
           message["status"] = "seen";
         } else {
@@ -200,15 +227,18 @@ console.log(activeUser)
       new_format.append("file", message.file);
       new_format.append("status", message.status);
       new_format.append("image", message.image);
+      new_format.append("video",message.video)
     
-      send_message(new_format);
-      
+    send_message(new_format);
+      console.log(messageToSend)
+
       setMessage((prev) => ({
         ...prev,
         message: "",
         status: "",
         file: null,
-        image: null
+        image: null,
+        video:null
       }));
       
       setSelectedFile(null);
@@ -224,7 +254,22 @@ console.log(activeUser)
 
   const handleFileSelection = (type) => {
     if (fileInputRef.current) {
-      fileInputRef.current.setAttribute('accept', type === 'image' ? 'image/*' : '*/*');
+      switch (type) {
+        case 'image':
+          fileInputRef.current.setAttribute('accept', 'image/*');
+          break;
+        case 'pdf':
+          fileInputRef.current.setAttribute('accept', 'application/pdf');
+          break;
+        case 'video':
+          fileInputRef.current.setAttribute('accept', 'video/*');
+          break;
+        case 'file':
+          fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,video/*');
+          break;
+        default:
+          fileInputRef.current.setAttribute('accept', '*/*');
+      }
       fileInputRef.current.click();
     }
   };
@@ -241,10 +286,27 @@ console.log(activeUser)
         }));
         const reader = new FileReader();
         reader.onloadend = () => {
-          setFilePreview(reader.result);
+          setFilePreview({
+            type: 'image',
+            url: reader.result
+          });
         };
         reader.readAsDataURL(file);
-      } else {
+      }
+      else if(file.type.startsWith('video/')){
+        setMessage((prev) => ({
+          ...prev,
+          video: file
+        }));
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFilePreview({
+            type: 'video',
+            url: reader.result
+          });        };
+        reader.readAsDataURL(file);
+      }
+       else {
         setMessage((prev) => ({
           ...prev,
           file: file
@@ -277,7 +339,6 @@ console.log(activeUser)
         return <Clock className="h-3 w-3 ml-1 inline text-gray-400" />;
     }
   };
-
   // Render notification indicator
   const renderNotificationIndicator = (contact) => {
     const messageStatus = getContactMessageStatus(contact);
@@ -303,7 +364,6 @@ console.log(activeUser)
   if (contactsLoading) {
     return <>Loading...</>;
   }
-
   return (
     <div className="h-screen bg-[#1a1e23] mt-16 flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
@@ -403,6 +463,7 @@ console.log(activeUser)
                       alt={activeContact && contacts.find(c => c.userId._id === activeContact._id)?.userId.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
+
                     <div className="ml-3">
                       <h3 className="text-white font-medium">{contacts.find(c => c.userId._id === activeContact._id)?.save_contact
                         ? contacts.find(c => c.userId._id === activeContact._id)?.name
@@ -428,8 +489,39 @@ console.log(activeUser)
             </div>
             
             {/* Messages */}
-            <div className="flex-1 p-2 sm:p-4 overflow-y-auto bg-[#1a1e23]">
-              <div ref={scrollRef} className="space-y-4">
+            {messageLoading ? (
+  Array.from({ length: 6 }).map((_, idx) => (
+    <div
+      key={idx}
+      className={`flex ${idx % 2 === 0 ? 'justify-start' : 'justify-end'} animate-pulse flex-1 p-2 sm:p-4 overflow-y-auto  bg-[#1a1e23]`}
+    >
+      <div className="flex max-w-xs md:max-w-md">
+        {/* Avatar (only on left side) */}
+        {idx % 2 === 0 && (
+          <div className="w-8 h-8 bg-gray-700 rounded-full mr-2 self-end" />
+        )}
+        <div
+          className={`bg-gray-700 p-3 text-white ${
+            idx % 2 === 0
+              ? 'rounded-r-lg rounded-tl-lg'
+              : 'rounded-l-lg rounded-tr-lg'
+          } w-40`}
+        >
+          <div className="h-3 bg-gray-600 rounded mb-2"></div>
+          <div className="h-3 bg-gray-600 rounded w-3/4"></div>
+        </div>
+      </div>
+    </div>
+  ))
+) :(
+            <div 
+            ref={scrollRef}
+            style={{
+              scrollbarWidth: "none",      // Firefox
+              msOverflowStyle: "none",     // IE and Edge
+              overflowY: "auto",
+            }} className="flex-1 p-2 sm:p-4 overflow-y-auto  bg-[#1a1e23]">
+              <div  className="space-y-4">
                 {messages?.map((message) => (
                   <div 
                     key={message.id}
@@ -449,45 +541,80 @@ console.log(activeUser)
                         <div className={`${message.isOwn ? 'bg-teal-500 p-3 rounded-l-lg rounded-tr-lg text-white' : 'bg-gray-800 p-3 rounded-r-lg rounded-tl-lg text-white'}`}>
                           <p className="text-sm">{message.text}</p>
                           {message?.image && message.image.match(/\.(jpeg|jpg|gif|png)$/) && (
-                            <img 
-                              onClick={() => setFullViewImage(message?.image)}
-                              src={message.image} 
-                              alt="Shared image" 
-                              className="mt-2 rounded max-w-56 h-auto" 
-                            />
+                            <div className="relative mt-2">
+                              <img 
+                                onClick={() => setFullViewImage(message?.image)}
+                                src={message.image} 
+                                alt="Shared image" 
+                                className="rounded max-w-56 h-auto cursor-pointer" 
+                              />
+                              {!message.isOwn &&
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadFile(message.image, `image-${Date.now()}.jpg`);
+                                }}
+                                className="absolute bottom-2 right-2 bg-black bg-opacity-50 p-1 rounded-full text-white hover:bg-opacity-70"
+                                title="Download image"
+                              >
+                                <Download className="h-4 w-4" />
+                              </button>}
+                            </div>
                           )}
+                          {
+                            message?.video && message.video.match(/\.(mp4|webm|ogg)$/)&& (
+                              <video src={message.video} controls className="w-40 rounded" />
+                            )
+                          }
 
                           {fullViewImage && (
                             <div 
                               className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
                               onClick={() => setFullViewImage(null)}
                             >
-                              <div className="max-w-4xl max-h-screen p-4">
+                              <div className="max-w-4xl max-h-screen p-4 relative">
                                 <img 
                                   src={fullViewImage} 
                                   alt="Full view" 
                                   className="max-w-full max-h-[90vh] object-contain" 
                                 />
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadFile(fullViewImage);
+                                  }}
+                                  className="absolute bottom-6 right-6 bg-black bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
+                                  title="Download image"
+                                >
+                                  <Download className="h-5 w-5" />
+                                </button>
                               </div>
                             </div>
                           )}
+                     
 
                           {message.file && !message.file.match(/\.(jpeg|jpg|gif|png)$/) && (
-                            <div className="mt-2 bg-gray-700 p-2 w-56 rounded flex items-center">
-                              <File className="h-4 w-full" />
-                              <span className="text-xs truncate">{message.file}</span>
+                            <div className="mt-2 bg-gray-700 p-2 w-56 rounded flex items-center justify-between group">
+                              <div className="flex items-center flex-1 overflow-hidden">
+                                <File className="h-4 w-4 mr-2 flex-shrink-0" />
+                                <span className="text-xs truncate">{message.file}</span>
+                              </div>
+                              <button 
+                                onClick={() => handleDownloadFile(message.file, message.file)}
+                                className="text-white ml-2 flex-shrink-0 p-1 hover:bg-gray-600 rounded"
+                                title="Download file"
+                              >
+                                <Download className="h-4 w-4" />
+                              </button>
                             </div>
                           )}
                         </div>
                         <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>
-                    {message?.isOwn&&
-                          <span className='mr-1 text-center'>
-                                             {/* {message.status!="seen"&&get_online_user.includes(activeContact._id)&&!activeUser.includes(authUser?._id)? <CheckCheck className="h-3 w-3 ml-1 inline text-gray-400" />:<>
-                             {activeUser.includes(authUser?._id)?<CheckCheck className="h-3 w-3 ml-1 inline text-teal-400" />: */
-                             renderMessageStatus(message?.status, message?.isOwn)
- }
-                          </span>
-                }
+                          {message?.isOwn &&
+                            <span className='mr-1 text-center'>
+                              {renderMessageStatus(message?.status, message?.isOwn)}
+                            </span>
+                          }
                           {message.time}
                         </p>
                       </div>
@@ -496,18 +623,53 @@ console.log(activeUser)
                 ))}
               </div>
             </div>
-            
+     )
+}
             {/* Message Input Area */}
-            <div className="p-2 sm:p-4 border-t border-gray-800">
+            <div className="p-2 sm:p-4  bottom-0 bg-[#1a1e23] border-t border-gray-800">
               {/* File Preview Area - only shown when a file is selected */}
               {filePreview && (
                 <div className="mb-2 relative">
                   <div className="relative inline-block">
+
+
+
+
+                 
+                   {filePreview.type === 'image' && (
                     <img 
-                      src={filePreview} 
+                      src={filePreview.url} 
                       alt="Preview" 
                       className="h-24 max-w-full rounded object-cover border border-gray-700" 
                     />
+                  )}
+                  {filePreview.type === 'video' && (
+                    <video 
+                      src={filePreview.url} 
+                      className="h-24 max-w-full rounded object-cover border border-gray-700" 
+                      controls
+                    />
+                  )}
+                  {filePreview.type === 'pdf' && (
+                    <div className="flex items-center p-2 rounded border border-gray-700">
+                      <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 18h12V6h-4V2H4v16zm8-13v3h3l-3-3z"></path>
+                      </svg>
+                      <span>{filePreview.name}</span>
+                    </div>
+                  )}
+                  {filePreview.type === 'file' && (
+                    <div className="flex items-center p-2 rounded border border-gray-700">
+                      <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 18h12V2H4v16zm2-2V4h8v12H6z"></path>
+                      </svg>
+                      <span>{filePreview.name}</span>
+                    </div>
+                  )} 
+                 
+
+
+
                     <button
                       onClick={removeSelectedFile}
                       className="absolute -top-2 -right-2 bg-gray-800 text-white rounded-full p-1 shadow-lg"
@@ -556,7 +718,20 @@ console.log(activeUser)
                       <File className="h-5 w-5 text-teal-500" />
                       <span>Upload File</span>
                     </button>
+                    <button 
+                      onClick={() => handleFileSelection('video')}
+                      className="flex items-center space-x-2 p-2 hover:bg-gray-800 rounded text-white text-sm"
+                    >
+                      <VideoIcon className="h-5 w-5 text-teal-500" />
+                      <span>Video</span>
+                    </button>
                     <input 
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey && (message.message || selectedFile)) {
+                              e.preventDefault();
+                              handleSendMessage(activeContact);
+                            }
+                          }}
                       type="file" 
                       ref={fileInputRef}
                       className="hidden"
@@ -567,6 +742,12 @@ console.log(activeUser)
                 
                 <input
                   onChange={(e) => handleInputChange(e)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && (message.message || selectedFile)) {
+                      e.preventDefault();
+                      handleSendMessage(activeContact);
+                    }
+                  }} 
                   type="text"
                   value={message.message}
                   placeholder="Type a message..."
@@ -588,7 +769,7 @@ console.log(activeUser)
                   <Smile className="h-5 w-5" />
                 </button>
                 <button 
-                  onClick={() => handleSendMessage(activeContact)} 
+                 onClick={() => handleSendMessage(activeContact)} 
                   className="bg-teal-500 text-white p-1 sm:p-2 rounded-lg"
                   disabled={!message.message && !selectedFile}
                 >

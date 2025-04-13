@@ -5,7 +5,7 @@ import Message from  "../models/message.model.js"
 import path from "path"
 import User from "../models/user.model.js"
 import { fileURLToPath } from "url"; // Import to define __dirname
-import {uploadImageFile,uploadDocFile} from "../util/cloudinary.js"
+import {uploadImageFile,uploadDocFile,uploadVideoFile} from "../util/cloudinary.js"
 import mongoose from "mongoose";
 import {getOnlineUserIds, io} from "../src/app.js"
 import { text } from "stream/consumers";
@@ -20,6 +20,7 @@ const store_messages=asyncHandler(async(req,res)=>{
         const receiver=getOnlineUserIds(receiverId);
         const user=await User.findById(id);
         let imageUrl=null;
+        let videoUrl=null;
         let docUrl=null;
         // now we here to implement the file and image also
         if(req.files){
@@ -28,13 +29,17 @@ const store_messages=asyncHandler(async(req,res)=>{
             if(req.files["image"]){
             const local_path=path.join(__dirname,`../public/temp/${req.files["image"][0].filename}`);
             const  req_url=await uploadImageFile(local_path);
-            
             imageUrl=req_url.secure_url;
             }
             if(req.files["file"]){
                 const local_path=path.join(__dirname,`../public/temp/${req.files["file"][0].filename}`);
                 const  req_url=await uploadDocFile(local_path);
                 docUrl=req_url.secure_url;
+                }
+                if(req.files["video"]){
+                    const local_path=path.join(__dirname,`../public/temp/${req.files["video"][0].filename}`);
+                    const  req_url=await uploadVideoFile(local_path);
+                    videoUrl=req_url.secure_url;
                 }
                 
           
@@ -45,6 +50,7 @@ const store_messages=asyncHandler(async(req,res)=>{
                 receiver:receiverId,
                 sender:id,
                 images:imageUrl,
+                video:videoUrl,
                 file:docUrl
                 });
                 await message_obj.save()
@@ -57,6 +63,7 @@ const store_messages=asyncHandler(async(req,res)=>{
                     id:message_obj._id,
                     file:message_obj.file,
                     image:message_obj.images,
+                    video:message_obj.video,
                     isOwn:true,
                     profilePhoto:user.profilePhoto,
                     status:message_obj.status,
@@ -132,11 +139,13 @@ const get_all_messages = asyncHandler(async(req, res) => {
                     sender: { $toString: "$senderInfo._id" },
                     text: "$message",
                     image:"$images",
+                    video:"$video",
                     file:"$file",
                     time: {
                         $dateToString: {
                             format: "%H:%M",
-                            date: "$createdAt"
+                            date: { $toDate: "$createdAt" },
+                            timezone: "+05:30"  // IST offset from UTC
                         }
                     },
                     isOwn: { $eq: [{ $toString: "$sender" }, id] },

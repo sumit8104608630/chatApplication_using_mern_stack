@@ -29,9 +29,11 @@ export const authStore=create((set,get)=>({
     },
     login: async (formData) => {
       try {
+        const update_message=messageStore.getState().update_message_array_received
         set({ isLoginIng: true }) // Use consistent property name
         const response = await axiosInstance.post(`/user/login`, formData);
         if (response.data.statusCode === 200) {
+          update_message(response.data.data._id)
           set({ authUser: response.data.data })
           get().connection()
         }
@@ -85,6 +87,7 @@ export const authStore=create((set,get)=>({
                 navigate("/login")
              }
            } catch (error) {
+            set({isSigningUp:false})
             console.log(error)
            }
     },
@@ -141,7 +144,6 @@ export const authStore=create((set,get)=>({
 
         });
         socket.on('getActiveUser', (activeUsers) => {
-          console.log("Active users updated:", activeUsers);
           // Prevent [null] by ensuring we always have an array
           set({ activeUser: Array.isArray(activeUsers) ? activeUsers.filter(Boolean) : [] });
       });
@@ -161,7 +163,6 @@ export const authStore=create((set,get)=>({
     }
     ,deleteActiveUser:async(userId)=>{
       const {socket}=get();
-      console.log(userId)
       socket.emit('delete_active_user',userId);
     },
     delete_all_previous_activeUser:async()=>{

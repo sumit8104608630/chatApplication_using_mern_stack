@@ -8,6 +8,10 @@ const MessageSchema=mongoose.Schema({
         type:String,
         default:null
     },
+    video:{
+        type:String,
+        default:null
+    },
     file:{
         type:String,
         default:null

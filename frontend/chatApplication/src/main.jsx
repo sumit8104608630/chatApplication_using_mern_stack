@@ -25,7 +25,6 @@ const App = () => {
       </div>
     );
   }
-
   return (
     <Router>
       <Routes>
