@@ -61,7 +61,6 @@ io.on("connection", (socket) => {
     
     socket.on('delete_all_previous_activeUser', () => {
         active = [];
-        
         // Broadcast updated active users list
         io.emit('getActiveUser', active);
     });

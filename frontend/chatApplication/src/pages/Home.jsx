@@ -11,10 +11,10 @@ import { authStore } from '../store/userAuth.store.js';
 const ChatHomePage = () => {
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
-  const { get_online_user, activeUser, selectUser, getActiveUser, deleteActiveUser, authUser } = authStore();
+  const { get_online_user, activeUser, selectUser,socket, getActiveUser, deleteActiveUser, authUser } = authStore();
   const { 
-    contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,
-    messages, setSelectedUser, subScribe, selectedUser, unSubScribe,messageLoading,locallyUpdateMessage,messageSendingLoading
+    contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,clear_notification,
+    messages, setSelectedUser, subScribe, selectedUser, unSubScribe,messageLoading,locallyUpdateMessage,messageSendingLoading,get_Notify,notify,notifyMessage
   } = messageStore();
 
   const [message, setMessage] = useState({
@@ -37,6 +37,17 @@ const ChatHomePage = () => {
   }, [get_all_contacts]);
 
   useEffect(() => {
+    get_Notify()
+  },[get_Notify])
+
+useEffect(()=>{
+  notifyMessage();
+return ()=>{
+  socket.off("newNotification")
+}
+},[notifyMessage,socket,selectedUser  ])
+
+  useEffect(() => {
     subScribe();
     return () => {
       unSubScribe();
@@ -45,13 +56,15 @@ const ChatHomePage = () => {
       }
     }
   }, [selectedUser, unSubScribe, subScribe, activeContact, deleteActiveUser]);
-
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+      // Small timeout to ensure content is rendered
+      setTimeout(() => {
+        scrollRef.current.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
     }
   }, [messages]);
 
@@ -129,11 +142,12 @@ const ChatHomePage = () => {
   };
 
   const handleContactClick = (contactId) => {
+    
     // Delete previous active user if exists
     if(get_online_user.includes(contactId._id)){
       locallyUpdateMessage(contactId._id)
     }
-   
+    clear_notification(contactId._id)
     if (activeContact) {
       deleteActiveUser(authUser._id);
     }
@@ -149,6 +163,7 @@ const ChatHomePage = () => {
     setMessage((prev) => ({ ...prev, receiverId: contactId._id }));
     getAll_messages(contactId._id);
     setShowContactsOnMobile(false);
+    socket.off("newNotification")
   };
 
   const [isMounted, setIsMounted] = useState(false);
@@ -190,6 +205,7 @@ const ChatHomePage = () => {
     setSelectedUser(null);
     setShowContactsOnMobile(true);
     deleteActiveUser(authUser._id)
+    //socket.off("newNotification")
   };
 
   const formatLastSeen = (timestamp) => {
@@ -212,7 +228,10 @@ const ChatHomePage = () => {
           !(item.authUserId === authUser?._id && item.selectedId === activeContact?._id)
       );
         if (seen_bool) {
+        //  clear_notification(activeContact?._id)
+
           message["status"] = "seen";
+
         } else {
           message["status"] = "received";
         }
@@ -230,7 +249,6 @@ const ChatHomePage = () => {
       new_format.append("video",message.video)
     
     send_message(new_format);
-      console.log(messageToSend)
 
       setMessage((prev) => ({
         ...prev,
@@ -341,19 +359,15 @@ const ChatHomePage = () => {
   };
   // Render notification indicator
   const renderNotificationIndicator = (contact) => {
-    const messageStatus = getContactMessageStatus(contact);
-    
-    if (!messageStatus) return null;
-    
-    if (messageStatus.isUnread) {
-      return (
-        <span className="bg-teal-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-          {contact.unread || 1}
+    //console.log(contact)
+    // const messageStatus = getContactMessageStatus(contact);
+    // if (!messageStatus) return null;
+   let notification= notify?.find(item=>item?.senderId==contact.userId._id)
+    if(!notification?.unseenCount==0){
+   return <span className="bg-teal-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+          {notification?.unseenCount }
         </span>
-      );
     }
-    
-    return null;
   };
 
   useEffect(() => {
@@ -444,8 +458,8 @@ const ChatHomePage = () => {
         {activeContact ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-              <div className="flex items-center">
+            <div className="p-4 border-b border-gray-800 flex justify-between items-center flex-shrink-0">
+            <div className="flex items-center">
                 {!showContactsOnMobile && (
                   <button 
                     className="mr-2 text-gray-400 md:hidden"
@@ -616,11 +630,27 @@ const ChatHomePage = () => {
                             </span>
                           }
                           {message.time}
+
+              
                         </p>
                       </div>
                     </div>
+                    
                   </div>
                 ))}
+                            {activeUser?.some(
+        (item) =>
+          (item.authUserId === activeContact?._id && item.selectedId === authUser?._id) &&
+          !(item.authUserId === authUser?._id && item.selectedId === activeContact?._id)
+      )&&messageSendingLoading && (
+    <div className={`flex justify-end  items-center py-2`}>
+      <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-lg">
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "600ms" }}></div>
+      </div>
+    </div>
+  )}
               </div>
             </div>
      )

@@ -6,6 +6,7 @@ import { authStore } from "./userAuth.store"
 export const messageStore=create((set,get)=>({
     contacts:[],
     messages:[],
+    notify:[],
     messageSendingLoading:false,
     messageLoading:false,
     selectedUser:null,
@@ -58,6 +59,7 @@ export const messageStore=create((set,get)=>({
             const {messages}=get();
             const response =await axiosInstance.post(`/message/save_message`,data);
             set({messages:[...messages,response.data.data]})
+
             if(response.status==201){
                 set({messageSendingLoading:false})
             }
@@ -82,20 +84,66 @@ export const messageStore=create((set,get)=>({
     subScribe:()=>{
         const socket=authStore.getState().socket;
         if(!socket)return
+       
         const{selectedUser}=get()
         socket.on('newMessage',(data)=>{
             if(data.sender==selectedUser||data.receiver==selectedUser){
             const {messages}=get();
-            
+           
             set({messages:[...messages,data]})
+            
             }
         })
     },
+   notifyMessage: () => {
+  const socket = authStore.getState().socket;
+  if (!socket) return;
+  const {notify}=get()
+  const authUser = authStore.getState().authUser;
+  // Remove any existing listeners for this event
+  socket.off('newNotification');
+  
+  // Add the new listener
+  socket.on('newNotification', (data) => {
+    if (data.receiverId == authUser._id) {
+      set((state) => {
+        const existingIndex = state.notify.findIndex(
+          (item) => item.senderId === data.sender
+        );
+  
+        if (existingIndex !== -1) {
+          const updatedNotify = [...state.notify];
+          updatedNotify[existingIndex] = {
+            ...updatedNotify[existingIndex],
+            unseenCount: updatedNotify[existingIndex].unseenCount+1,
+          };
+          return { notify: updatedNotify };
+        }
+        else {
+          return { 
+            notify: [...state.notify, {
+              senderId: data.sender, 
+              unseenCount: 1
+            }]
+          }
+        }
+      });
+    }
+  });
+}
+,      
+clear_notification:(contact_id)=>{
+        set((state)=>{
+            const updatedNotify=state.notify.filter(item=>item.senderId!=contact_id);
+            return{notify:updatedNotify}
+        })
+},
     unSubScribe:()=>{
         // let's unSubScribe
         const socket=authStore.getState().socket;
         if(!socket)return
         socket.off('newMessage')
+        socket.off("newNotification")
     },
     setSelectedUser:(selectedUserId)=>{
         
@@ -114,4 +162,13 @@ export const messageStore=create((set,get)=>({
             console.log(error)
         }
     },
+    get_Notify:async()=>{
+        try {
+            const response=await axiosInstance.get(`/message/notify`)
+            set({notify:response.data.data})
+        } catch (error) {
+            console.log(error)
+        }
+    },
+ 
 }))

@@ -71,10 +71,15 @@ const store_messages=asyncHandler(async(req,res)=>{
                     text:message,
                     time:formattedTime
                 }
+                if(format_message.status!="seen"){
+                    io.emit("newNotification", {sender:format_message.sender,receiverId});
+                }
+
                 if(receiver){ 
                     format_message["isOwn"]=false
                 io.to(receiver).emit("newMessage",format_message)
             }
+
             format_message["isOwn"]=true
             return res.status(201).json(new apiResponse(201,format_message, "Message sent successfully"));
         }
@@ -238,11 +243,54 @@ const update_message_array_seen=asyncHandler(async(req,res)=>{
         console.log(error)
     }
 })
+// creating the notification function for my chat application for better performance 
+
+const Notification=asyncHandler(async(req,res)=>{
+    try {
+        const {id}=req.user;
+        if(!id){
+            return res.status(400).json(new apiResponse(400, null, "Invalid user ID"));
+        }
+        const messageStats = await Message.aggregate([
+            // Match messages where user is the receiver
+            { $match: { receiver: new mongoose.Types.ObjectId(id) } },
+            
+            // Group by sender and count messages with "received" status
+            { $group: {
+                _id: "$sender",
+                unseenCount: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "received"] }, 1, 0]
+                  }
+                },
+                totalMessages: { $sum: 1 }
+              }
+            },
+            
+            // Project only the fields we need
+            { $project: {
+                _id: 0,
+                senderId: "$_id",
+                unseenCount: 1
+              }
+            }
+          ]); 
+          if(messageStats){
+            return res.status(200).json(new apiResponse(200, messageStats, "Updated successfully"));
+          } 
+          else{
+            return res.status(400).json(new apiResponse(400, null, "No messages found"))
+          }      
+    } catch (error) {
+        console.log(error)
+    }
+}) 
 
 export {
     store_messages,
     get_all_messages,
     update_message_status,
     update_message_array_received,
-    update_message_array_seen
+    update_message_array_seen,
+    Notification
 }
