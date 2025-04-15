@@ -48,7 +48,7 @@ export const messageStore=create((set,get)=>({
     },
     update_message_array_to_seen:async(contact_id)=>{
         try {
-            const response=await axiosInstance.post(`/message/update_message_array_seen`,{contact_id});
+            await axiosInstance.post(`/message/update_message_array_seen`,{contact_id});
         } catch (error) {
             console.log(error)
         }
@@ -98,7 +98,6 @@ export const messageStore=create((set,get)=>({
    notifyMessage: () => {
   const socket = authStore.getState().socket;
   if (!socket) return;
-  const {notify}=get()
   const authUser = authStore.getState().authUser;
   // Remove any existing listeners for this event
   socket.off('newNotification');

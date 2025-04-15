@@ -276,14 +276,11 @@ return ()=>{
         case 'image':
           fileInputRef.current.setAttribute('accept', 'image/*');
           break;
-        case 'pdf':
+        case 'file':
           fileInputRef.current.setAttribute('accept', 'application/pdf');
           break;
         case 'video':
           fileInputRef.current.setAttribute('accept', 'video/*');
-          break;
-        case 'file':
-          fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,video/*');
           break;
         default:
           fileInputRef.current.setAttribute('accept', '*/*');
@@ -329,8 +326,14 @@ return ()=>{
           ...prev,
           file: file
         }));
-        setFilePreview(null);
-      }
+
+  const reader = new FileReader();
+        reader.onloadend = () => {
+          setFilePreview({
+            type: 'file',
+            url: reader.result
+          });        };
+        reader.readAsDataURL(file);      }
     }
     setShowFilePopup(false);
   };
@@ -611,7 +614,7 @@ return ()=>{
                             <div className="mt-2 bg-gray-700 p-2 w-56 rounded flex items-center justify-between group">
                               <div className="flex items-center flex-1 overflow-hidden">
                                 <File className="h-4 w-4 mr-2 flex-shrink-0" />
-                                <span className="text-xs truncate">{message.file}</span>
+                               <a target='_blank' className='cursor-pointer' href={message.file}><span className="text-xs truncate">{message.file}</span></a>
                               </div>
                               <button 
                                 onClick={() => handleDownloadFile(message.file, message.file)}
@@ -680,22 +683,31 @@ return ()=>{
                       controls
                     />
                   )}
-                  {filePreview.type === 'pdf' && (
-                    <div className="flex items-center p-2 rounded border border-gray-700">
-                      <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M4 18h12V6h-4V2H4v16zm8-13v3h3l-3-3z"></path>
-                      </svg>
-                      <span>{filePreview.name}</span>
-                    </div>
-                  )}
-                  {filePreview.type === 'file' && (
-                    <div className="flex items-center p-2 rounded border border-gray-700">
-                      <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M4 18h12V2H4v16zm2-2V4h8v12H6z"></path>
-                      </svg>
-                      <span>{filePreview.name}</span>
-                    </div>
-                  )} 
+             {filePreview.type === 'file' && (
+  <div className="flex items-center p-3 rounded-md border border-gray-300 bg-gray-50 shadow-sm max-w-xs">
+    <div className="flex-shrink-0 text-red-500">
+      {/* PDF/File Icon */}
+      <svg
+        className="w-6 h-6 mr-3"
+        fill="currentColor"
+        viewBox="0 0 20 20"
+      >
+        <path d="M4 2a2 2 0 00-2 2v12a2 2 0 002 2h8l6-6V4a2 2 0 00-2-2H4zm9 11v3H4V4h12v7h-3a1 1 0 00-1 1z" />
+      </svg>
+    </div>
+    <div className="flex flex-col overflow-hidden">
+      <span className="text-sm font-medium text-gray-800 truncate">
+        {filePreview.name}
+      </span>
+      {/* Optional: file type label */}
+      <span className="text-xs text-gray-500">
+        {filePreview.name}
+      </span>
+    </div>
+  </div>
+)}
+
+               
                  
 
 

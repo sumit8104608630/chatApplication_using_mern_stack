@@ -38,11 +38,15 @@ const checkUser=async()=>{
         }
     }
 }
-const debouncedCheckUser = useMemo(() => debounce(() => checkUser(), 500), [contactData.phoneNumber]);
 
-useEffect(()=>{
-    debouncedCheckUser()
-},[contactData.phoneNumber])
+const debouncedCheckUser = useMemo(() => debounce((phone)=>{checkUser(phone)}, 500), []);
+
+useEffect(() => {
+  if (contactData.phoneNumber) {
+    debouncedCheckUser(contactData.phoneNumber);
+  }
+}, [contactData.phoneNumber]); 
+
   return (
     <div className="h-screen bg-[#1a1e23] grid lg:grid-cols-2">
       {/* Left Side - Form */}

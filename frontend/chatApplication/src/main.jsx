@@ -8,6 +8,7 @@ import Layout from './pages/Layout.jsx';
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
 import SignUpPage from './pages/SignUpPage.jsx';
+import GroupForm from "./pages/GroupForm.jsx"
 import Profile from './pages/Profile.jsx';
 import Error from './pages/Error.jsx';
 import AddContactPage from './pages/AddContactPage.jsx';
@@ -34,6 +35,7 @@ const App = () => {
           <Route path="signUpPage" element={!authUser ? <SignUpPage /> : <Navigate to="/" />} />
           <Route path="profile" element={authUser ? <Profile /> : <Navigate to="/login" />} />
           <Route path="contacts" element={authUser ? <AddContactPage/> : <Navigate to="/login" />} />
+          <Route path="createGroup" element={authUser ? <GroupForm/> : <Navigate to="/login" />} />
           <Route path="*" element={<Error/> }/>
         </Route>
       </Routes>

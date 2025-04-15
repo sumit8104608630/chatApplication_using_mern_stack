@@ -37,6 +37,8 @@ const userRegistration=asyncHandler(async(req,res)=>{
         return res.status(201).json(new apiResponse(201,user,"User created successfully"));
     } catch (error) {
         console.log(error)
+                return res.status(500).json(new apiResponse(500, {}, "Internal Server Error"));
+        
     }
 });
 
@@ -70,7 +72,9 @@ const user_login=asyncHandler(async(req,res)=>{
         200,user,"user logged in successfully"
     ))
     } catch (error) {
-     console.log(error)   
+     console.log(error) 
+             return res.status(500).json(new apiResponse(500, {}, "Internal Server Error"));
+       
     }
 })
 
@@ -94,6 +98,8 @@ const user_logout=asyncHandler(async(req,res)=>{
 
     } catch (error) {
         console.log(error)
+                return res.status(500).json(new apiResponse(500, {}, "Internal Server Error"));
+        
     }
 });
 
@@ -260,13 +266,6 @@ const update_Profile=asyncHandler(async(req,res)=>{
     }
 });
 
-const active_contact=asyncHandler(async(req,res)=>{
-    try {
-        
-    } catch (error) {
-        console.log(error)
-    }
-})
 
 
 export {

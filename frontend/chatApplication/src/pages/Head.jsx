@@ -39,7 +39,7 @@ const Head = () => {
 
   // Navigation links
   const navLinks = [
-    { name: "Messages", path: "/messages", icon: <MessageSquare className="w-5 h-5" /> },
+    { name: "Create Group", path: "/createGroup", icon: <MessageSquare className="w-5 h-5" /> },
     { name: "Contacts", path: "/contacts", icon: <Users className="w-5 h-5" /> },
   ];
 

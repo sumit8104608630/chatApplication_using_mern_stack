@@ -123,4 +123,31 @@ const uploadVideoFile = async (localStorage) => {
     }
 };
 
-export { uploadFile,uploadImageFile,uploadDocFile,uploadVideoFile };
+const uploadGroupImageFile = async (localStorage) => {
+    try {
+        // Check if local file path is provided
+        if (!localStorage) {
+            return "Please provide a valid file path.";
+        }
+ 
+        // Upload file to Cloudinary
+        const uploaded = await cloudinary.uploader.upload(localStorage, { resource_type: "auto" , folder: "chat_app/GroupProfileImages"});
+ 
+
+        // Delete the local file after successful upload
+        fs.unlinkSync(localStorage);
+
+        return uploaded;
+    } catch (error) {
+        console.error("Cloudinary Upload Error:", error);
+
+        // Ensure file is deleted even if upload fails
+        if (fs.existsSync(localStorage)) {
+            fs.unlinkSync(localStorage);
+            console.log("Local file deleted due to upload error.");
+        }
+
+        return { error: "Upload failed. Please try again." }; // ✅ Return error message
+    }
+};
+export { uploadFile,uploadImageFile,uploadDocFile,uploadVideoFile ,uploadGroupImageFile};
