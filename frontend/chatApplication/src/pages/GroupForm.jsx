@@ -6,7 +6,7 @@ import { groupStore } from '../store/group.store';
 
 const CreateGroup = () => {
       const { get_all_contacts,contacts}=messageStore()
-    const {createGroup,isCreatingGroup}=groupStore()
+    const {createGroup,isCreatingGroup,get_all_group}=groupStore()
     const [groupData, setGroupData] = useState({
         name: '',
         description: '',
@@ -20,6 +20,7 @@ const CreateGroup = () => {
   // Dummy contacts data
  
     useEffect(() => {
+        get_all_group();
       get_all_contacts();
     }, [get_all_contacts]);
 

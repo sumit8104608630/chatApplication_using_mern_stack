@@ -54,11 +54,27 @@ const create_group = asyncHandler(async (req, res) => {
 });
 
 // let's create function which get all the group channel or contact
-const get_all_group=asyncHandler(async(_,res)=>{
+const get_all_group=asyncHandler(async(req,res)=>{
     try {
+        const {id}=req.user;
         //there will be two situation
         //1. user is admin of group
         //2. user is member of group
+        // let's full fill all the situation
+        const groups= await Group.find(
+            {
+             $or:[
+                {members:id},
+                {admins:id}
+             ]   
+            }
+        )
+        .populate("members","-password -contacts -salt")
+        .populate("admins","-password -contacts -salt")
+        if(!groups){
+            return res.status(404).json(new apiResponse(404, {}, "No groups found"))
+        }
+        return res.status(200).json(new apiResponse(200, groups, "Groups found successfully"));
     } catch (error) {
         console.log(error)
         return res.status(500).json(new apiResponse(500, {}, "Internal Server Error"));
