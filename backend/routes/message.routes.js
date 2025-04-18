@@ -5,7 +5,7 @@ import {upload} from "../middlewares/multer.middleware.js"
 
 const messageRoute=express.Router();
 
-messageRoute.post("/save_message",checkAuthenticationCookie("accessToken"),  upload.fields([{ name: "file", maxCount: 1 },{ name: "image", maxCount: 1 },{ name: "video", maxCount: 1 }]),store_messages);
+messageRoute.post("/save_message",checkAuthenticationCookie("accessToken"),upload.fields([{ name: "file", maxCount: 1 },{ name: "image", maxCount: 1 },{ name: "video", maxCount: 1 }]),store_messages);
 messageRoute.get("/get_message/:id",checkAuthenticationCookie("accessToken"),get_all_messages);
 messageRoute.post("/update_message_status",checkAuthenticationCookie("accessToken"),update_message_status);
 messageRoute.post("/update_message_array_received",checkAuthenticationCookie("accessToken"),update_message_array_received);

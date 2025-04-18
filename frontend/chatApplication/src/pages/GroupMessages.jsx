@@ -14,6 +14,7 @@ import {
   Info,
   Link
 } from 'lucide-react';
+import { groupMessageStore } from '../store/groupMessage.store';
 
 function GroupMessages({
   handleContactClick,
@@ -28,7 +29,7 @@ function GroupMessages({
   messageSendingLoading,
   setActiveTab
 }) {
-    
+  const {sendGroupMessage} =groupMessageStore()
   const [showFilePopup, setShowFilePopup] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
@@ -97,7 +98,7 @@ function GroupMessages({
         
         // Send the message (call your API function)
         console.log("Sending group message:", Object.fromEntries(new_format));
-        // send_group_message(new_format);
+         sendGroupMessage(new_format);
         
         // Clear input fields after sending
         setMessage({

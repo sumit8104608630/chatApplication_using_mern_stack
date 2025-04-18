@@ -96,9 +96,11 @@ app.use(cookieParser());
 import userRoutes from "../routes/user.routes.js";
 import messageRoute from "../routes/message.routes.js";
 import groupRoute from  "../routes/group.routes.js"
+import groupMessageRoute from "../routes/groupMessage.routes.js"
 app.use("/user", userRoutes);
 app.use("/message", messageRoute);
 app.use("/group",groupRoute);
+app.use("/groupMessage",groupMessageRoute);
 
 
 export default server;

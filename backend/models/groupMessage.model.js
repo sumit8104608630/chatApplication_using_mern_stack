@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 //let's create a group schema for the group message sending
 
 const groupMessageSchema = new mongoose.Schema({
-    group: {
+    groupId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Group",
         required: true,
