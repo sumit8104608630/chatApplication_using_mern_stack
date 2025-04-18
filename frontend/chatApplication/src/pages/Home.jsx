@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { 
   Search, MoreVertical, Phone, Video, Send, PlusCircle, Paperclip, 
   Smile, ArrowLeft, Menu, Image, File, X, Clock, Check, 
@@ -7,8 +7,13 @@ import {
 } from 'lucide-react';
 import { messageStore } from '../store/message.store.js';
 import { authStore } from '../store/userAuth.store.js';
+import { groupStore } from '../store/group.store';
+import GroupMessages from './GroupMessages.jsx';
+
 
 const ChatHomePage = () => {
+      const {createGroup,isCreatingGroup,get_all_group,groups}=groupStore()
+    const navigate=useNavigate()
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const { get_online_user, activeUser, selectUser,socket, getActiveUser, deleteActiveUser, authUser } = authStore();
@@ -16,6 +21,9 @@ const ChatHomePage = () => {
     contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,clear_notification,
     messages, setSelectedUser, subScribe, selectedUser, unSubScribe,messageLoading,locallyUpdateMessage,messageSendingLoading,get_Notify,notify,notifyMessage
   } = messageStore();
+  const [activeTab, setActiveTab] = useState('contacts');
+  const [activeGroup, setActiveGroup] = useState(null);
+
 
   const [message, setMessage] = useState({
     receiverId: "",
@@ -35,6 +43,19 @@ const ChatHomePage = () => {
   useEffect(() => {
     get_all_contacts();
   }, [get_all_contacts]);
+
+  useEffect(() => {
+    if(activeTab==="contacts"){
+      setActiveGroup(null)
+    }
+    else if(activeTab==="groups"){
+      setActiveContact(null)
+    }
+  },[activeTab])
+
+  useEffect(() => {
+    get_all_group()
+  },[get_all_group])
 
   useEffect(() => {
     get_Notify()
@@ -140,9 +161,13 @@ return ()=>{
       status: latestMessage.status
     };
   };
-
+const handleGroupClick=(groupInfo)=>{
+  console.log(groupInfo)
+  setActiveContact(null)
+  setActiveGroup(groupInfo)
+}
   const handleContactClick = (contactId) => {
-    
+    setActiveGroup(null)
     // Delete previous active user if exists
     if(get_online_user.includes(contactId._id)){
       locallyUpdateMessage(contactId._id)
@@ -373,6 +398,9 @@ return ()=>{
     }
   };
 
+
+
+
   useEffect(() => {
     getActiveUser()
   }, [getActiveUser]);
@@ -385,79 +413,168 @@ return ()=>{
     <div className="h-screen bg-[#1a1e23] mt-16 flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
       <div className={`${showContactsOnMobile ? 'flex' : 'hidden'} md:flex md:w-80 border-r border-gray-800 flex-col h-full md:h-screen`}>
-        {/* Header */}
-        <div className="p-4 border-b border-gray-800">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold text-white">Messages</h1>
-          </div>
-          <div className="mt-4 relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-500" />
-            </div>
-            <input
-              type="text"
-              className="w-full bg-gray-800 text-white pl-10 pr-4 py-2 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
-              placeholder="Search contacts..."
-            />
-          </div>
-        </div>
+  {/* Header */}
+  <div className="p-4 border-b border-gray-800">
+    <div className="flex justify-between items-center">
+      <h1 className="text-xl font-bold text-white">Messages</h1>
+    </div>
+    
+    {/* Tabs for switching between Contacts and Groups */}
+    <div className="mt-3 flex bg-gray-800 rounded-md p-1">
+      <button
+        className={`flex-1 py-2 text-sm font-medium rounded-md transition ${
+          activeTab === 'contacts' 
+            ? 'bg-gray-700 text-white' 
+            : 'text-gray-400 hover:text-white'
+        }`}
+        onClick={() => setActiveTab('contacts')}
+      >
+        Contacts
+      </button>
+      <button
+        className={`flex-1 py-2 text-sm font-medium rounded-md transition ${
+          activeTab === 'groups' 
+            ? 'bg-gray-700 text-white' 
+            : 'text-gray-400 hover:text-white'
+        }`}
+        onClick={() => setActiveTab('groups')}
+      >
+        Groups
+      </button>
+    </div>
+    
+    <div className="mt-4 relative">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <Search className="h-4 w-4 text-gray-500" />
+      </div>
+      <input
+        type="text"
+        className="w-full bg-gray-800 text-white pl-10 pr-4 py-2 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+        placeholder={activeTab === 'contacts' ? "Search contacts..." : "Search groups..."}
+      />
+    </div>
+  </div>
+  
+  {/* Contacts List */}
+  {activeTab === 'contacts' && (
+    <div className="flex-1 overflow-y-auto">
+      {contacts.map((contact) => {
+        const messageStatus = getContactMessageStatus(contact);
         
-        {/* Contacts List */}
-        <div className="flex-1 overflow-y-auto">
-          {contacts.map((contact) => {
-            const messageStatus = getContactMessageStatus(contact);
-            
-            return (
-              <div 
-                key={contact._id}
-                className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact === contact._id ? 'bg-gray-800' : ''}`}
-                onClick={() => handleContactClick(contact.userId)}
-              >
-                <div className="flex items-center">
-                  <div className="relative">
-                    {contact.save_contact ?
-                      <img
-                        src={contact.userId.profilePhoto}
-                        alt={contact.userId.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      /> :
-                      <img
-                        src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
-                        alt=""
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    }
-                    {get_online_user.includes(contact.userId._id) && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
-                    )}
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <div className="flex justify-between items-center">
-                      {contact.save_contact ?
-                        <h3 className="text-white font-medium">{contact.name}</h3> :
-                        <h3 className="text-white font-medium">{contact.phone}</h3>
-                      }
-                      {get_online_user.includes(contact.userId._id) ? 
-                        <span className="text-xs text-green-500">Online</span> :
-                        <span className="text-xs text-gray-400">{formatLastSeen(contact.userId.lastSeen)}</span>
-                      }
-                    </div>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className={`text-sm truncate max-w-xs ${messageStatus?.isUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
-                        {messageStatus?.latestMessage || contact.userId.status || "Hey there! I'm using ChatApp."}
-                      </p>
-                      {renderNotificationIndicator(contact)}
-                    </div>
-                  </div>
+        return (
+          <div 
+            key={contact._id}
+            className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact === contact._id ? 'bg-gray-800' : ''}`}
+            onClick={() => handleContactClick(contact.userId)}
+          >
+            <div className="flex items-center">
+              <div className="relative">
+                {contact.save_contact ?
+                  <img
+                    src={contact.userId.profilePhoto}
+                    alt={contact.userId.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                  /> :
+                  <img
+                    src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
+                    alt=""
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                }
+                {get_online_user.includes(contact.userId._id) && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
+                )}
+              </div>
+              <div className="ml-3 flex-1">
+                <div className="flex justify-between items-center">
+                  {contact.save_contact ?
+                    <h3 className="text-white font-medium">{contact.name}</h3> :
+                    <h3 className="text-white font-medium">{contact.phone}</h3>
+                  }
+                  {get_online_user.includes(contact.userId._id) ? 
+                    <span className="text-xs text-green-500">Online</span> :
+                    <span className="text-xs text-gray-400">{formatLastSeen(contact.userId.lastSeen)}</span>
+                  }
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <p className={`text-sm truncate max-w-xs ${messageStatus?.isUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
+                    {messageStatus?.latestMessage || contact.userId.status || "Hey there! I'm using ChatApp."}
+                  </p>
+                  {renderNotificationIndicator(contact)}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+  
+  {/* Groups List */}
+  {activeTab === 'groups' && (
+    <div className="flex-1 overflow-y-auto">
+      {groups?.map((group) => {
+        
+        return (
+          <div 
+            key={group._id}
+            className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeGroup === group._id ? 'bg-gray-800' : ''}`}
+            onClick={()  => handleGroupClick(group)}
+          >
+           <div className="flex items-center">
+  <div className="relative">
+    {group.groupImage ? (
+      <img
+        src={group.groupImage}
+        alt={group.name}
+        className="w-12 h-12 rounded-full object-cover"
+      />
+    ) : (
+      <div className="w-12 h-12 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">
+        {group.name.substring(0, 2).toUpperCase()}
       </div>
+    )}
+  </div>
+  <div className="ml-3 flex-1">
+    <div className="flex justify-between items-center">
+      <h3 className="text-white font-medium">{group.name}</h3>
+
+    </div>
+    <div className="flex justify-between items-center mt-1">
+                  <p className={`text-sm truncate max-w-xs text-gray-500`}>
+                    { group.description || "Hey there! I'm using ChatApp."}
+                  </p>
+                </div>
+    
+  </div>
+</div>
+          </div>
+        );
+      })}
+      
+      {/* Create new group button */}
+      <div className="p-4 flex justify-center">
+        <button 
+          className="bg-teal-600 hover:bg-teal-700 text-white rounded-full px-4 py-2 text-sm font-medium flex items-center"
+          onClick={()=>navigate("/createGroup")}
+        >
+          <PlusCircle className="w-4 h-4 mr-2" />
+          Create New Group
+        </button>
+      </div>
+    </div>
+  )}
+</div>
+
+
+{activeGroup&&<>
+  <GroupMessages setActiveTab={setActiveTab} activeGroup={activeGroup} handleContactClick={handleContactClick} setActiveGroup={setActiveGroup}/>
+</>}
+
+
 
       {/* Right Side - Chat Area */}
-      <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
+      {!activeGroup&&<div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
         {activeContact ? (
           <>
             {/* Chat Header */}
@@ -707,11 +824,6 @@ return ()=>{
   </div>
 )}
 
-               
-                 
-
-
-
                     <button
                       onClick={removeSelectedFile}
                       className="absolute -top-2 -right-2 bg-gray-800 text-white rounded-full p-1 shadow-lg"
@@ -820,7 +932,8 @@ return ()=>{
               </div>
             </div>
           </>
-        ) : (
+        ) : (<>
+          
           <div className="flex-1 flex items-center justify-center bg-[#1a1e23]">
             <div className="text-center p-4">
               <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto">
@@ -832,8 +945,11 @@ return ()=>{
               </p>
             </div>
           </div>
+          
+          </>
         )}
       </div>
+      }
     </div>
   );
 };

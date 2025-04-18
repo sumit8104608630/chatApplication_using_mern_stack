@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation,NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, MessageSquare, Bell, Search, Users, Settings, User } from "lucide-react";
+import { Menu, X, MessageSquare, Bell, Search, Users, Settings, User ,Group} from "lucide-react";
 import { authStore } from "../store/userAuth.store";
 import { axiosInstance } from "../lib/axios";
 const Head = () => {
@@ -39,8 +39,8 @@ const Head = () => {
 
   // Navigation links
   const navLinks = [
-    { name: "Create Group", path: "/createGroup", icon: <MessageSquare className="w-5 h-5" /> },
-    { name: "Contacts", path: "/contacts", icon: <Users className="w-5 h-5" /> },
+    { name: "Create Group", path: "/createGroup", icon: <Group className="w-5 h-5" /> },
+    { name: "Add Contacts", path: "/contacts", icon: <Users className="w-5 h-5" /> },
   ];
 
   return (

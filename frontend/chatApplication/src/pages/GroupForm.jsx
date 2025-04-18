@@ -6,7 +6,7 @@ import { groupStore } from '../store/group.store';
 
 const CreateGroup = () => {
       const { get_all_contacts,contacts}=messageStore()
-    const {createGroup,isCreatingGroup,get_all_group}=groupStore()
+    const {createGroup,isCreatingGroup,get_all_group,groups}=groupStore()
     const [groupData, setGroupData] = useState({
         name: '',
         description: '',
@@ -41,7 +41,7 @@ const CreateGroup = () => {
       setGroupData({ ...groupData, members: [...groupData.members, contact.userId._id] });
     }
   };
-console.log(contacts)
+console.log(groups)
   const handleAddNewContact = () => {
     if (newContact.name && newContact.phoneNumber) {
       const newId = Date.now(); // Generate a temporary ID
@@ -64,7 +64,6 @@ console.log(contacts)
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsCreatingGroup(true);
     let new_group_obj=new FormData();
     new_group_obj.append("name",groupData.name);
     new_group_obj.append("description",groupData.description);
@@ -73,7 +72,6 @@ console.log(contacts)
     new_group_obj.append("groupImage",groupData.imageFile)
     console.log(new_group_obj)
     createGroup(new_group_obj);
-    setIsCreatingGroup(false);
 
   };
 
