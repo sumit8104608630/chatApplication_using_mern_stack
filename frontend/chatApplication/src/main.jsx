@@ -12,12 +12,18 @@ import GroupForm from "./pages/GroupForm.jsx"
 import Profile from './pages/Profile.jsx';
 import Error from './pages/Error.jsx';
 import AddContactPage from './pages/AddContactPage.jsx';
+import { groupStore } from './store/group.store.js';
 const App = () => {
+  const {get_all_group}=groupStore()
   const { authUser, checkAuth, isCheckingAuth,isUpdatingProfile ,get_online_user} = authStore();
 
   useEffect(() => {
     checkAuth(); // ✅ Check auth on mount
   }, [checkAuth]); 
+ 
+   useEffect(() => {
+      get_all_group()
+    },[get_all_group])
 
   if (isCheckingAuth) {
     return (

@@ -2,6 +2,7 @@ import {create} from "zustand"
 import { axiosInstance } from "../lib/axios"
 import {io} from "socket.io-client"
 import { messageStore } from "./message.store";
+import { groupStore } from "./group.store";
 const API_URL = import.meta.env.VITE_DATA_BASE_LINK; // Your backend URL
 
 export const authStore=create((set,get)=>({
@@ -29,12 +30,14 @@ export const authStore=create((set,get)=>({
     },
     login: async (formData) => {
       try {
+        const get_all_group=groupStore.getState().get_all_group;
         const update_message=messageStore.getState().update_message_array_received
         set({ isLoginIng: true }) // Use consistent property name
         const response = await axiosInstance.post(`/user/login`, formData);
         if (response.data.statusCode === 200) {
           update_message(response.data.data._id)
           set({ authUser: response.data.data })
+          get_all_group()
           get().connection()
         }
         set({ isLoginIng: false }) // Use consistent property name
@@ -107,13 +110,16 @@ export const authStore=create((set,get)=>({
       }
     },
     // let's create socket.io connect method
-    connection: () => {
+    connection: async() => {
       try {
         const {authUser} = get()
+        const groups= groupStore.getState().groups
         if (!authUser || get().socket?.connected) return;
         
         const socket = io(API_URL, {
-          query: { userId: authUser._id }
+          query: { userId: authUser._id,
+            groupsId:groups?.map(group=>group._id).join(",")
+           }
         })
         
         // Listen for the onlineUser event

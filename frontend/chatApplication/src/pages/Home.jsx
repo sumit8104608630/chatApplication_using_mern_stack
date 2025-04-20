@@ -9,14 +9,16 @@ import { messageStore } from '../store/message.store.js';
 import { authStore } from '../store/userAuth.store.js';
 import { groupStore } from '../store/group.store';
 import GroupMessages from './GroupMessages.jsx';
+import { groupMessageStore } from '../store/groupMessage.store.js';
 
 
 const ChatHomePage = () => {
+  const{get_all_groupMessage,setSelectedGroup,groupSubScribe,selectedGroup,unGroupSubScribe}=groupMessageStore();
       const {createGroup,isCreatingGroup,get_all_group,groups}=groupStore()
     const navigate=useNavigate()
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
-  const { get_online_user, activeUser, selectUser,socket, getActiveUser, deleteActiveUser, authUser } = authStore();
+  const { get_online_user, activeUser, selectUser,socket, getActiveUser, deleteActiveUser, authUser,connection } = authStore();
   const { 
     contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,clear_notification,
     messages, setSelectedUser, subScribe, selectedUser, unSubScribe,messageLoading,locallyUpdateMessage,messageSendingLoading,get_Notify,notify,notifyMessage
@@ -53,9 +55,11 @@ const ChatHomePage = () => {
     }
   },[activeTab])
 
-  useEffect(() => {
-    get_all_group()
-  },[get_all_group])
+
+
+
+
+ 
 
   useEffect(() => {
     get_Notify()
@@ -77,6 +81,20 @@ return ()=>{
       }
     }
   }, [selectedUser, unSubScribe, subScribe, activeContact, deleteActiveUser]);
+  useEffect(() => {
+    // Clear any existing subscription
+    //unGroupSubScribe();
+    
+    // Only subscribe if we have a selected group
+    if (selectedGroup) {
+      groupSubScribe();
+    }
+    
+    // Clean up when component unmounts or selectedGroup changes
+    return () => {
+      unGroupSubScribe();
+    };
+  }, [selectedGroup,groupSubScribe,unGroupSubScribe]); // Only depend on selectedGroup
   useEffect(() => {
     if (scrollRef.current) {
       // Small timeout to ensure content is rendered
@@ -162,8 +180,11 @@ return ()=>{
     };
   };
 const handleGroupClick=(groupInfo)=>{
-  console.log(groupInfo)
+  setSelectedGroup(groupInfo._id)
+  get_all_groupMessage(groupInfo._id)
   setActiveContact(null)
+  setShowContactsOnMobile(false);
+
   setActiveGroup(groupInfo)
 }
   const handleContactClick = (contactId) => {
@@ -228,11 +249,13 @@ const handleGroupClick=(groupInfo)=>{
 
   const handleBackToContacts = () => {
     setSelectedUser(null);
+    setSelectedGroup(null);
+    setActiveGroup(null)
     setShowContactsOnMobile(true);
     deleteActiveUser(authUser._id)
     //socket.off("newNotification")
-  };
 
+  };
   const formatLastSeen = (timestamp) => {
     if (!timestamp) return "Unknown";
     const date = new Date(parseInt(timestamp));
@@ -566,11 +589,11 @@ const handleGroupClick=(groupInfo)=>{
   )}
 </div>
 
-
-{activeGroup&&<>
-  <GroupMessages setActiveTab={setActiveTab} activeGroup={activeGroup} handleContactClick={handleContactClick} setActiveGroup={setActiveGroup}/>
-</>}
-
+<>
+{activeGroup&&<div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
+  <GroupMessages setActiveTab={setActiveTab} activeGroup={activeGroup} handleBackToGroups={handleBackToContacts} handleContactClick={handleContactClick} setActiveGroup={setActiveGroup}/>
+</div>}
+</>
 
 
       {/* Right Side - Chat Area */}

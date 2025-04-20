@@ -16,6 +16,7 @@ export const io = new Server(server, {
 })
 
 const userSocketMap = {} // {userId: socketId}
+const groupSocketMap={}// all active userGroup
 let active = [] // array of objects: [{authUserId: "123", selectedUserId: "456"}, ...]
 
 // Socket.io event handling when a client connects
@@ -24,11 +25,28 @@ io.on("connection", (socket) => {
     
     const userId = socket.handshake.query.userId // this userId will come from the frontend
     const authUserId = socket.handshake.query.authUserId
-    
     if(userId) {
         userSocketMap[userId] = socket.id
     }
+    const groupsIdString = socket.handshake.query.groupsId;
+if (groupsIdString && groupsIdString !== "undefined") {
+        const groupIds = groupsIdString ? groupsIdString.split(",") : [];    
+        console.log(groupIds)
+        if(groupIds?.length != 0) {
+            groupIds.forEach(groupId => {
+                socket.join(groupId);
     
+                // Initialize array if not exists
+                if (!groupSocketMap[groupId]) {
+                    groupSocketMap[groupId] = [];
+                }
+                if (!groupSocketMap[groupId].includes(socket.id)) {
+                    groupSocketMap[groupId].push(socket.id);
+                }
+            });
+        }
+}
+    console.log(groupSocketMap)
     const selectedId = socket.handshake.query.selected_id
     if(selectedId && authUserId) {
       
@@ -41,11 +59,7 @@ io.on("connection", (socket) => {
                 selectedId: selectedId
             });
             // Also add the reverse relationship
-        
-        
-      
     }
-    
     io.emit("onlineUser", Object.keys(userSocketMap))
     io.emit('getActiveUser', active);
 
@@ -68,6 +82,19 @@ io.on("connection", (socket) => {
     socket.on('disconnect', () => {
         console.log('disconnected');
         delete userSocketMap[userId];
+        
+        // Remove this socket from all group mappings
+        Object.keys(groupSocketMap).forEach(groupId => {
+            const index = groupSocketMap[groupId].indexOf(socket.id);
+            if (index !== -1) {
+                groupSocketMap[groupId].splice(index, 1);
+                if (groupSocketMap[groupId].length === 0) {
+                    delete groupSocketMap[groupId];
+                }
+            }
+        });
+        
+        
         io.emit("onlineUser", Object.keys(userSocketMap));
     });
 });
@@ -75,6 +102,9 @@ io.on("connection", (socket) => {
 // Return the socket ID of an online user
 export function getOnlineUserIds(userId) {
     return userSocketMap[userId];
+}
+export function getGroupId(groupId){
+    return groupSocketMap[groupId];
 }
 
 // Return all active conversations involving this user
