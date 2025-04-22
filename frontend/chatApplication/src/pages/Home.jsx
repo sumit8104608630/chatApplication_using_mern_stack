@@ -443,7 +443,13 @@ const handleGroupClick=(groupInfo)=>{
     getActiveUser()
   }, [getActiveUser]);
 
- 
+  const handleCall=()=>{
+    console.log("calling....")
+  }
+  
+  const handleVideoCall=()=>{
+    console.log("videoCall....")
+  }
   
   if (contactsLoading) {
     return <>Loading...</>;
@@ -495,7 +501,7 @@ const handleGroupClick=(groupInfo)=>{
       />
     </div>
   </div>
-  
+
   {/* Contacts List */}
   {activeTab === 'contacts' && (
     <div className="flex-1 overflow-y-auto">
@@ -680,11 +686,11 @@ const handleGroupClick=(groupInfo)=>{
                 )}
               </div>
               <div className="flex items-center space-x-3">
-                <button className="text-gray-400 hover:text-white hidden sm:block">
+                <button onClick={handleCall} className="text-gray-400 hover:text-white hidden sm:block">
                   <Phone className="h-5 w-5" />
                 </button>
                 <button className="text-gray-400 hover:text-white hidden sm:block">
-                  <Video className="h-5 w-5" />
+                  <Video onClick={handleVideoCall} className="h-5 w-5" />
                 </button>
                 <button className="text-gray-400 hover:text-white">
                   <MoreVertical className="h-5 w-5" />

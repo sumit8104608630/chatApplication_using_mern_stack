@@ -1,5 +1,6 @@
 import express from "express"
 import http from "http"
+import {ExpressPeerServer} from "peer"
 import cookieParser from "cookie-parser"
 import {Server} from "socket.io"
 import cors from "cors"
@@ -58,6 +59,28 @@ io.on("connection", (socket) => {
         console.log("Groups joined:", groupSocketMap);
     });
 
+
+    socket.on("call-user", ({ to, from }) => {
+        const targetSocketId = getOnlineUserIds(to);
+        if (targetSocketId) {
+            io.to(targetSocketId).emit("call-user", { from });
+        }
+    });
+    
+    socket.on("accept-call", ({ to }) => {
+        const callerSocketId = getOnlineUserIds(to);
+        if (callerSocketId) {
+            io.to(callerSocketId).emit("call-accepted");
+        }
+    });
+    
+    socket.on("end-call", ({ to }) => {
+        const targetSocketId = getOnlineUserIds(to);
+        if (targetSocketId) {
+            io.to(targetSocketId).emit("call-ended");
+        }
+    });
+    
 
     // Emit initial data
     io.emit("onlineUser", Object.keys(userSocketMap));
