@@ -6,6 +6,8 @@ import { authStore } from "./userAuth.store"
 export const messageStore=create((set,get)=>({
     contacts:[],
     messages:[],
+    filterLoading:false,
+    filterArray:[],
     notify:[],
     messageSendingLoading:false,
     messageLoading:false,
@@ -24,6 +26,33 @@ export const messageStore=create((set,get)=>({
 
         }
     },
+    //let's create filter function
+    filter_contacts: async (query,activeTab) => {
+        set({filterLoading:true})
+        const { contacts } = get();
+        try {
+          if (activeTab==="contacts") {
+            const response = await axiosInstance.get(`/user/searchUser?searchQuery=${query}`);
+            if (response.status === 200) {
+              const matchedUser = response.data.data;
+              
+              const filterContact = contacts.filter(contact => {
+            return matchedUser.some(user=>contact.userId && contact.userId._id && contact.userId._id === user._id)
+              });
+              
+              set({ 
+                  filterArray: filterContact, 
+              });
+            }
+            set({filterLoading:false})
+          }
+        } catch (error) {
+            set({filterLoading:false})
+
+          console.log("Error filtering contacts:", error);
+        }
+    },
+      
     update_message_array_received:async(activeContact)=>{
         try {
             

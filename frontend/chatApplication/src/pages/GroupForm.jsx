@@ -99,27 +99,27 @@ console.log(groups)
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Group Image */}
             <div className="flex justify-center mb-6">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full border-2 border-teal-500 flex items-center justify-center overflow-hidden">
-                  {groupData.image ? (
-                    <img src={groupData.image} alt="Group" className="w-full h-full object-cover" />
-                  ) : (
-                    <Users className="w-12 h-12 text-gray-400" />
-                  )}
-                </div>
-                <label htmlFor="groupImage" className="absolute bottom-0 right-0 bg-teal-500 p-2 rounded-full cursor-pointer">
-                  <ImageIcon className="w-4 h-4 text-white" />
-                </label>
-                <input 
-                  id="groupImage" 
-                  name='groupImage'
-                  type="file" 
-                  className="hidden" 
-                  accept="image/*" 
-                  onChange={handleImageChange} 
-                />
-              </div>
-            </div>
+  <div className="relative">
+    <div className="w-24 h-24 rounded-full border-2 border-teal-500 flex items-center justify-center overflow-hidden">
+      {groupData.imagePreview ? (
+        <img src={groupData.imagePreview} alt="Group" className="w-full h-full object-cover" />
+      ) : (
+        <Users className="w-12 h-12 text-gray-400" />
+      )}
+    </div>
+    <label htmlFor="groupImage" className="absolute bottom-0 right-0 bg-teal-500 p-2 rounded-full cursor-pointer">
+      <ImageIcon className="w-4 h-4 text-white" />
+    </label>
+    <input 
+      id="groupImage" 
+      name='groupImage'
+      type="file" 
+      className="hidden" 
+      accept="image/*" 
+      onChange={handleImageChange} 
+    />
+  </div>
+</div>
 
             {/* Group Name */}
             <div>
@@ -190,49 +190,7 @@ console.log(groups)
             </div>
 
             {/* Add New Contact */}
-            <div className="bg-gray-800 bg-opacity-50 p-4 rounded-md">
-              <label className="block text-sm font-medium text-gray-300 mb-3">
-                Add New Contact
-              </label>
-              
-              <div className="space-y-3">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Users className="h-5 w-5 text-gray-500" />
-                  </div>
-                  <input
-                    type="text"
-                    className="w-full bg-transparent text-white pl-10 pr-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
-                    placeholder="Contact name"
-                    value={newContact.name}
-                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                  />
-                </div>
-                
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-500" />
-                  </div>
-                  <input
-                    type="tel"
-                    className="w-full bg-transparent text-white pl-10 pr-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
-                    placeholder="+91 98765 43210"
-                    value={newContact.phoneNumber}
-                    onChange={(e) => setNewContact({ ...newContact, phoneNumber: e.target.value })}
-                  />
-                </div>
-                
-                <button
-                  type="button"
-                  onClick={handleAddNewContact}
-                  disabled={!newContact.name || !newContact.phoneNumber}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Add to Group
-                </button>
-              </div>
-            </div>
+         
 
             {/* Selected Members */}
             {selectedContacts.length > 0 && (

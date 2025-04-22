@@ -101,7 +101,6 @@ const {contacts}=messageStore()
         }
         
         // Send the message (call your API function)
-        console.log("Sending group message:", Object.fromEntries(new_format));
          sendGroupMessage(new_format);
         
         // Clear input fields after sending

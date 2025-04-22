@@ -21,81 +21,75 @@ let active = [] // array of objects: [{authUserId: "123", selectedUserId: "456"}
 
 // Socket.io event handling when a client connects
 io.on("connection", (socket) => {
-    console.log(`A user connected: ${socket.id}`);
-    
-    const userId = socket.handshake.query.userId // this userId will come from the frontend
-    const authUserId = socket.handshake.query.authUserId
-    if(userId) {
-        userSocketMap[userId] = socket.id
+    console.log(`User connected: ${socket.id}`);
+
+    const userId = socket.handshake.query.userId;
+    const authUserId = socket.handshake.query.authUserId;
+    const selectedId = socket.handshake.query.selected_id;
+
+    // ✅ Map user to socket
+    if (userId) {
+        userSocketMap[userId] = socket.id;
     }
-    const groupsIdString = socket.handshake.query.groupsId;
-if (groupsIdString && groupsIdString !== "undefined") {
-        const groupIds = groupsIdString ? groupsIdString.split(",") : [];    
-        console.log(groupIds)
-        if(groupIds?.length != 0) {
+
+    // ✅ Handle 1-to-1 active user logic
+    if (authUserId && selectedId) {
+        active.push({ authUserId, selectedId });
+    }
+
+
+    // ✅ Handle group joining (if groupIds provided)
+    socket.on("join-groups", (groupsIdString) => {
+        if (groupsIdString && groupsIdString !== "undefined") {
+            const groupIds = groupsIdString.split(",");
             groupIds.forEach(groupId => {
                 socket.join(groupId);
-    
-                // Initialize array if not exists
+
                 if (!groupSocketMap[groupId]) {
                     groupSocketMap[groupId] = [];
                 }
+
                 if (!groupSocketMap[groupId].includes(socket.id)) {
                     groupSocketMap[groupId].push(socket.id);
                 }
             });
         }
-}
-    console.log(groupSocketMap)
-    const selectedId = socket.handshake.query.selected_id
-    if(selectedId && authUserId) {
-      
-       
-    
-       
-            // Add both directions of the relationship
-            active.push({
-                authUserId: authUserId,
-                selectedId: selectedId
-            });
-            // Also add the reverse relationship
-    }
-    io.emit("onlineUser", Object.keys(userSocketMap))
-    io.emit('getActiveUser', active);
 
+        console.log("Groups joined:", groupSocketMap);
+    });
+
+
+    // Emit initial data
+    io.emit("onlineUser", Object.keys(userSocketMap));
+    io.emit("getActiveUser", active);
+
+    // ✅ Clear a specific user's active chats
     socket.on('delete_active_user', (userId) => {
-        // Remove all conversation pairs involving this user
-        active = active.filter(pair => 
-            pair.authUserId !== userId && pair.selectedUserId !== userId
+        active = active.filter(pair =>
+            pair.authUserId !== userId && pair.selectedId !== userId
         );
-        
-        // Broadcast updated active users list
         io.emit('getActiveUser', active);
     });
-    
+
     socket.on('delete_all_previous_activeUser', () => {
         active = [];
-        // Broadcast updated active users list
         io.emit('getActiveUser', active);
     });
-    
+
     socket.on('disconnect', () => {
-        console.log('disconnected');
+        console.log(`User disconnected: ${socket.id}`);
+
         delete userSocketMap[userId];
-        
-        // Remove this socket from all group mappings
-        Object.keys(groupSocketMap).forEach(groupId => {
-            const index = groupSocketMap[groupId].indexOf(socket.id);
-            if (index !== -1) {
-                groupSocketMap[groupId].splice(index, 1);
-                if (groupSocketMap[groupId].length === 0) {
-                    delete groupSocketMap[groupId];
-                }
+
+        for (const groupId in groupSocketMap) {
+            groupSocketMap[groupId] = groupSocketMap[groupId].filter(id => id !== socket.id);
+            if (groupSocketMap[groupId].length === 0) {
+                delete groupSocketMap[groupId];
             }
-        });
-        
-        
+        }
+
         io.emit("onlineUser", Object.keys(userSocketMap));
+
     });
 });
 

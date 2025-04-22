@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, User, Phone, AtSign, ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { authStore } from '../store/userAuth.store';
 import { axiosInstance } from '../lib/axios';
@@ -8,6 +8,8 @@ import { debounce } from '../utils/debounce';
 const AddContactPage = () => {
     const {addContact,isAddContact}=authStore();
     const[userAvailable,setUserAvailable]=useState()
+    const [error,setBooleanError]=useState(false)
+    const navigate=useNavigate()
   const [contactData, setContactData] = useState({
     name: '',
     phoneNumber: '',
@@ -16,24 +18,32 @@ const AddContactPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    addContact(contactData)
+    if(!error){
+    addContact(contactData,navigate)
+    }
   }
-const checkUser=async()=>{
+const checkUser=async(phoneNumber)=>{
     try {
-        const response=await axiosInstance.post(`/user/check`,contactData);
+      console.log(phoneNumber)
+        const response=await axiosInstance.post(`/user/check`,{phoneNumber:phoneNumber});
+        console.log(response)
         setUserAvailable(response.data.message)
     } catch (error) {
         if(error.response.status==404){
-            setUserAvailable("user Does not exist")
+          setBooleanError(true)
+           return setUserAvailable("user Does not exist")
         }
     
         else if(error.response.status==402){
-            setUserAvailable("Arre! Apne aap se baat karne lage? 😆 Koi aur number daalo!")
+          setBooleanError(true)
+           return setUserAvailable("Arre! Apne aap se baat karne lage? 😆 Koi aur number daalo!")
         }
         else if(error.response.status==403){
+          setBooleanError(false)
             setUserAvailable("Oops! This contact already exists in your list. You just need to save it to keep in touch. 😊✨")
         }
         else{
+          setBooleanError(false)
             setUserAvailable("")
         }
     }

@@ -1,5 +1,5 @@
 import express from "express"
-import {userRegistration,user_login,user_logout,add_contact_no,get_all_contacts,getUserInfo,check_user_present,update_Profile} from "../controllers/user.controller.js"
+import {userRegistration,user_login,user_logout,add_contact_no,get_all_contacts,getUserInfo,check_user_present,update_Profile,searchUser} from "../controllers/user.controller.js"
 const userRoutes=express.Router();
 import {upload} from "../middlewares/multer.middleware.js"
 import {checkAuthenticationCookie} from "../middlewares/authentication.middleware.js"
@@ -14,6 +14,6 @@ userRoutes.get("/get_contact",checkAuthenticationCookie("accessToken"),get_all_c
 userRoutes.get("/userInfo",checkAuthenticationCookie("accessToken"),getUserInfo);
 userRoutes.post("/check",checkAuthenticationCookie("accessToken"),check_user_present);
 userRoutes.put("/update_profile",checkAuthenticationCookie("accessToken"),update_Profile);
-
+userRoutes.get("/searchUser",checkAuthenticationCookie("accessToken"),searchUser)
 
 export default userRoutes 

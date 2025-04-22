@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { 
   Search, MoreVertical, Phone, Video, Send, PlusCircle, Paperclip, 
@@ -10,22 +10,26 @@ import { authStore } from '../store/userAuth.store.js';
 import { groupStore } from '../store/group.store';
 import GroupMessages from './GroupMessages.jsx';
 import { groupMessageStore } from '../store/groupMessage.store.js';
+import { debounce } from '../utils/debounce.js';
+import { Loader } from 'lucide-react';
 
 
 const ChatHomePage = () => {
   const{get_all_groupMessage,setSelectedGroup,groupSubScribe,selectedGroup,unGroupSubScribe}=groupMessageStore();
-      const {createGroup,isCreatingGroup,get_all_group,groups}=groupStore()
+      const {createGroup,isCreatingGroup,filterGroupLoading,groups,filterGroupArray,filter_groups}=groupStore()
     const navigate=useNavigate()
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const { get_online_user, activeUser, selectUser,socket, getActiveUser, deleteActiveUser, authUser,connection } = authStore();
   const { 
-    contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,clear_notification,
+    contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,clear_notification,filter_contacts,filterArray,filterLoading,
     messages, setSelectedUser, subScribe, selectedUser, unSubScribe,messageLoading,locallyUpdateMessage,messageSendingLoading,get_Notify,notify,notifyMessage
   } = messageStore();
   const [activeTab, setActiveTab] = useState('contacts');
   const [activeGroup, setActiveGroup] = useState(null);
-
+  const [searchInputValue,setValue]=useState({
+    inputValue:"",
+  })
 
   const [message, setMessage] = useState({
     receiverId: "",
@@ -56,10 +60,12 @@ const ChatHomePage = () => {
   },[activeTab])
 
 
+useEffect(()=>{
+  socket.emit("join-groups",groups?.map(group=>group._id).join(",")
+);
 
+},[groups,socket])
 
-
- 
 
   useEffect(() => {
     get_Notify()
@@ -394,7 +400,7 @@ const handleGroupClick=(groupInfo)=>{
       file: null
     }));
   };
-
+ 
   const renderMessageStatus = (status, isOwn) => {
     if (!isOwn) return;
     switch (status) {
@@ -421,19 +427,29 @@ const handleGroupClick=(groupInfo)=>{
     }
   };
 
+  const handleSearch=(e)=>{
 
+    const searchValue=e.target.value;
+    setValue({inputValue:searchValue})
+  }
 
+  const debouncedUserFilter=useMemo(()=>debounce((inputValue)=>{activeTab==="contacts"?filter_contacts(inputValue,activeTab):filter_groups(inputValue,activeTab)},500),[filter_contacts,activeTab])
+  useEffect(()=>{
+    debouncedUserFilter(searchInputValue.inputValue)
+  },[debouncedUserFilter,searchInputValue])
+  
 
   useEffect(() => {
     getActiveUser()
   }, [getActiveUser]);
 
+ 
   
   if (contactsLoading) {
     return <>Loading...</>;
   }
   return (
-    <div className="h-screen bg-[#1a1e23] mt-16 flex flex-col md:flex-row">
+    <div  className="h-screen bg-[#1a1e23]  flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
       <div className={`${showContactsOnMobile ? 'flex' : 'hidden'} md:flex md:w-80 border-r border-gray-800 flex-col h-full md:h-screen`}>
   {/* Header */}
@@ -471,6 +487,8 @@ const handleGroupClick=(groupInfo)=>{
         <Search className="h-4 w-4 text-gray-500" />
       </div>
       <input
+        onChange={(e)=>handleSearch(e)}
+        value={searchInputValue.inputValue}
         type="text"
         className="w-full bg-gray-800 text-white pl-10 pr-4 py-2 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
         placeholder={activeTab === 'contacts' ? "Search contacts..." : "Search groups..."}
@@ -481,105 +499,134 @@ const handleGroupClick=(groupInfo)=>{
   {/* Contacts List */}
   {activeTab === 'contacts' && (
     <div className="flex-1 overflow-y-auto">
-      {contacts.map((contact) => {
-        const messageStatus = getContactMessageStatus(contact);
-        
-        return (
-          <div 
-            key={contact._id}
-            className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact === contact._id ? 'bg-gray-800' : ''}`}
-            onClick={() => handleContactClick(contact.userId)}
-          >
-            <div className="flex items-center">
-              <div className="relative">
-                {contact.save_contact ?
-                  <img
-                    src={contact.userId.profilePhoto}
-                    alt={contact.userId.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  /> :
-                  <img
-                    src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
-                    alt=""
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                }
-                {get_online_user.includes(contact.userId._id) && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
-                )}
-              </div>
-              <div className="ml-3 flex-1">
-                <div className="flex justify-between items-center">
+      {filterLoading ? (
+        // Loading state for contacts with Lucide icon
+        <div className="flex flex-col items-center justify-center h-40 space-y-2">
+          <Loader className="w-8 h-8 text-white animate-spin" />
+          <p className="text-gray-400 text-sm">Loading contacts...</p>
+        </div>
+      ) : filterArray?.length === 0 && searchInputValue.inputValue!=""? (
+        // Empty state when no contacts match search
+        <div className="flex flex-col items-center justify-center h-40 text-center px-4">
+          <Search className="h-10 w-10 text-gray-400 mb-2" />
+          <p className="text-gray-400">No contacts found</p>
+          <p className="text-gray-500 text-sm mt-1">Try a different search term</p>
+        </div>
+      ) : (
+        // Contacts list
+        filterArray.map((contact) => {
+          const messageStatus = getContactMessageStatus(contact);
+          
+          return (
+            <div 
+              key={contact._id}
+              className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact === contact._id ? 'bg-gray-800' : ''}`}
+              onClick={() => handleContactClick(contact.userId)}
+            >
+              <div className="flex items-center">
+                <div className="relative">
                   {contact.save_contact ?
-                    <h3 className="text-white font-medium">{contact.name}</h3> :
-                    <h3 className="text-white font-medium">{contact.phone}</h3>
+                    <img
+                      src={contact.userId.profilePhoto}
+                      alt={contact.userId.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    /> :
+                    <img
+                      src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
+                      alt=""
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
                   }
-                  {get_online_user.includes(contact.userId._id) ? 
-                    <span className="text-xs text-green-500">Online</span> :
-                    <span className="text-xs text-gray-400">{formatLastSeen(contact.userId.lastSeen)}</span>
-                  }
+                  {get_online_user.includes(contact.userId._id) && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
+                  )}
                 </div>
-                <div className="flex justify-between items-center mt-1">
-                  <p className={`text-sm truncate max-w-xs ${messageStatus?.isUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
-                    {messageStatus?.latestMessage || contact.userId.status || "Hey there! I'm using ChatApp."}
-                  </p>
-                  {renderNotificationIndicator(contact)}
+                <div className="ml-3 flex-1">
+                  <div className="flex justify-between items-center">
+                    {contact.save_contact ?
+                      <h3 className="text-white font-medium">{contact.name}</h3> :
+                      <h3 className="text-white font-medium">{contact.phone}</h3>
+                    }
+                    {get_online_user.includes(contact.userId._id) ? 
+                      <span className="text-xs text-green-500">Online</span> :
+                      <span className="text-xs text-gray-400">{formatLastSeen(contact.userId.lastSeen)}</span>
+                    }
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className={`text-sm truncate max-w-xs ${messageStatus?.isUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
+                      {messageStatus?.latestMessage || contact.userId.status || "Hey there! I'm using ChatApp."}
+                    </p>
+                    {renderNotificationIndicator(contact)}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })
+      )}
     </div>
   )}
   
   {/* Groups List */}
   {activeTab === 'groups' && (
     <div className="flex-1 overflow-y-auto">
-      {groups?.map((group) => {
-        
-        return (
-          <div 
-            key={group._id}
-            className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeGroup === group._id ? 'bg-gray-800' : ''}`}
-            onClick={()  => handleGroupClick(group)}
-          >
-           <div className="flex items-center">
-  <div className="relative">
-    {group.groupImage ? (
-      <img
-        src={group.groupImage}
-        alt={group.name}
-        className="w-12 h-12 rounded-full object-cover"
-      />
-    ) : (
-      <div className="w-12 h-12 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">
-        {group.name.substring(0, 2).toUpperCase()}
-      </div>
-    )}
-  </div>
-  <div className="ml-3 flex-1">
-    <div className="flex justify-between items-center">
-      <h3 className="text-white font-medium">{group.name}</h3>
-
-    </div>
-    <div className="flex justify-between items-center mt-1">
-                  <p className={`text-sm truncate max-w-xs text-gray-500`}>
-                    { group.description || "Hey there! I'm using ChatApp."}
-                  </p>
+      {filterGroupLoading ? (
+        // Loading state for groups with Lucide icon
+        <div className="flex flex-col items-center justify-center h-40 space-y-2">
+          <Loader className="w-8 h-8 text-white animate-spin" />
+          <p className="text-gray-400 text-sm">Loading groups...</p>
+        </div>
+      ) : filterGroupArray?.length === 0 && searchInputValue.inputValue!=""? (
+        // Empty state when no groups
+        <div className="flex flex-col items-center justify-center h-40 text-center px-4">
+          <Users className="h-10 w-10 text-gray-400 mb-2" />
+          <p className="text-gray-400">No groups found</p>
+          <p className="text-gray-500 text-sm mt-1">Create a new group to get started</p>
+        </div>
+      ) : (
+        // Groups list
+        filterGroupArray?.map((group) => {
+          return (
+            <div 
+              key={group._id}
+              className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeGroup === group._id ? 'bg-gray-800' : ''}`}
+              onClick={() => handleGroupClick(group)}
+            >
+              <div className="flex items-center">
+                <div className="relative">
+                  {group.groupImage ? (
+                    <img
+                      src={group.groupImage}
+                      alt={group.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">
+                      {group.name.substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
                 </div>
-    
-  </div>
-</div>
-          </div>
-        );
-      })}
+                <div className="ml-3 flex-1">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-white font-medium">{group.name}</h3>
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-sm truncate max-w-xs text-gray-500">
+                      {group.description || "Hey there! I'm using ChatApp."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })
+      )}
       
       {/* Create new group button */}
       <div className="p-4 flex justify-center">
         <button 
           className="bg-teal-600 hover:bg-teal-700 text-white rounded-full px-4 py-2 text-sm font-medium flex items-center"
-          onClick={()=>navigate("/createGroup")}
+          onClick={() => navigate("/createGroup")}
         >
           <PlusCircle className="w-4 h-4 mr-2" />
           Create New Group
@@ -591,13 +638,13 @@ const handleGroupClick=(groupInfo)=>{
 
 <>
 {activeGroup&&<div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
-  <GroupMessages setActiveTab={setActiveTab} activeGroup={activeGroup} handleBackToGroups={handleBackToContacts} handleContactClick={handleContactClick} setActiveGroup={setActiveGroup}/>
+  <GroupMessages setActiveTab={setActiveTab} activeGroup={activeGroup} handleDownloadFile={handleDownloadFile} handleBackToGroups={handleBackToContacts} handleContactClick={handleContactClick} setActiveGroup={setActiveGroup}/>
 </div>}
 </>
 
 
       {/* Right Side - Chat Area */}
-      {!activeGroup&&<div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
+      {!activeGroup&&<div  className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
         {activeContact ? (
           <>
             {/* Chat Header */}
@@ -858,7 +905,7 @@ const handleGroupClick=(groupInfo)=>{
               )}
               
               {/* Input Bar */}
-              <div className="flex items-center bg-gray-800 rounded-lg p-2 relative">
+              <div className="flex  items-center bg-gray-800 rounded-lg p-2 relative">
                 <button 
                   className="text-gray-400 hover:text-white p-1 sm:p-2"
                   onClick={toggleFilePopup}

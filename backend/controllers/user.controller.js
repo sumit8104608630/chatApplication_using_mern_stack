@@ -4,7 +4,7 @@ import {apiError} from "../util/apiError.js"
 import User from "../models/user.model.js"
 import {uploadFile} from "../util/cloudinary.js"
 import { fileURLToPath } from "url"; // Import to define __dirname
-
+import mongoose from "mongoose";
 // Define __dirname manually in ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -144,7 +144,7 @@ const add_contact_no = asyncHandler(async (req, res) => {
                     });
                 }
 
-                return res.status(200).json(new apiResponse(200, { contact: updatedUser }, "Contact updated successfully"));
+                return res.status(201).json(new apiResponse(201, { contact: updatedUser }, "Contact updated successfully"));
             }
 
             return res.status(400).json(new apiResponse(400, {}, "Contact already exists"));
@@ -167,7 +167,7 @@ const add_contact_no = asyncHandler(async (req, res) => {
             });
         }
 
-        return res.status(200).json(new apiResponse(200, { contact: newContact }, "Contact added successfully"));
+        return res.status(201).json(new apiResponse(201, { contact: newContact }, "Contact added successfully"));
 
     } catch (error) {
         console.error("Error adding contact:", error);
@@ -263,10 +263,65 @@ const update_Profile=asyncHandler(async(req,res)=>{
        return res.status(200).json(new apiResponse(200, updatedUser, "Profile updated"))
     } catch (error) {
         console.log(error) 
+        return res.status(500).json(new apiResponse(500, {}, "Something went wrong"));
+
     }
 });
 
+// let's create the filter search functionality
 
+const searchUser=asyncHandler(async(req,res)=>{
+    try {
+        const {id}=req.user;
+        const {searchQuery} = req.query;
+        let filter=[];
+       
+        if(searchQuery){
+            filter.push({name:{$regex:searchQuery,$options:'i'}},{phone:{$regex:searchQuery,$options:'i'}})          
+        }
+        const matchObj={
+    _id: { $ne: id },
+        }
+        if(filter.length>0){
+    matchObj.$or=filter
+        }
+        const user=await User.aggregate([
+            
+                {$match:{_id: new  mongoose.Types.ObjectId(id) }},
+                {$unwind:"$contacts"},
+                {
+                    $lookup: {
+                        from: "users",          // The collection to join with
+                        localField: "contacts.userId",  // Field from the input documents
+                        foreignField: "_id",    // Field from the documents of the "from" collection
+                        as: "contactUser"       // Array field to add to the input documents
+                      }
+                },
+                {
+                    "$unwind":"$contactUser"
+                },
+                {
+                    $match: {
+                      $or: [
+                        { "contacts.name": { $regex: searchQuery, $options: 'i' } },
+                        { "contacts.phone": { $regex: searchQuery, $options: 'i' } },
+                      ]
+                    }
+                  },
+                  {
+                    $project: {
+                     _id:"$contacts.userId",
+                     name: "$contacts.name",
+                    }
+                  }
+            
+        ])
+        return res.status(200).json(new apiResponse(200,user,"Search result"))
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, {}, "Something went wrong"));
+    }
+})
 
 export {
     userRegistration,
@@ -277,4 +332,5 @@ export {
     getUserInfo,
     check_user_present,
     update_Profile,
+    searchUser
 }

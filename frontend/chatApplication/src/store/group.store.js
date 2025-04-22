@@ -8,7 +8,8 @@ const API_URL = import.meta.env.VITE_DATA_BASE_LINK; // Your backend URL
 export const groupStore=create((set,get)=>({
     isCreatingGroup:false,
     isGroupLoading:false,
-    groups:null,
+    filterGroupArray:[],
+        groups:null,
     createGroup:async(formDta)=>{
         try {
             set({isCreatingGroup:true});
@@ -32,12 +33,36 @@ export const groupStore=create((set,get)=>({
             if(response.status==200){
                 set({isGroupLoading:false})
                 set({groups:response.data.data});
-                connection()
+              //  connection()
             }
         } catch (error) {
             set({isGroupLoading:false})
             console.log(error)
         }
-    }
+    },
+    filter_groups: async (query,activeTab) => {
+        set({filterGroupLoading:true})
+        const { groups } = get();
+        try {
+          if (activeTab==="groups") {
+            const response = await axiosInstance.get(`/group/filterGroup?searchQuery=${query}`);
+            if (response.status === 200) {
+              const matchedUser = response.data.data;
+              const filterGroup = groups.filter(group => {
+            return matchedUser.some(user=>group.name === user.name)
+              });
+              
+              set({ 
+                  filterGroupArray: filterGroup, 
+              });
+            }
+            set({filterGroupLoading:false})
+          }
+        } catch (error) {
+            set({filterGroupLoading:false})
+
+          console.log("Error filtering contacts:", error);
+        }
+    },
 
 }))

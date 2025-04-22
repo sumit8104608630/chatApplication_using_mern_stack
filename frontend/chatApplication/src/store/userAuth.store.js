@@ -13,6 +13,7 @@ export const authStore=create((set,get)=>({
     isLoginIng:false,
     isCheckingAuth:true,
     isAddContact:false,
+    addContactLoading:false,
     isUpdatingProfile:false,
     socket:null,
     checkAuth:async()=>{
@@ -62,13 +63,19 @@ export const authStore=create((set,get)=>({
             console.log(error)
           }
     },
-    addContact:async(formdata)=>{
+    addContact:async(formdata,navigate)=>{
         try {
+          set({addContactLoading:true})
             const response=await axiosInstance.post(`/user/contact`,formdata)
-            if(response.data.statusCode===200){
+            if(response.data.statusCode===201){
+              set({addContactLoading:false})
+              navigate("/")
+
                 console.log("saved contact")
             }
         } catch (error) {
+          set({addContactLoading:false})
+
             console.log(error)
         }
     },
@@ -118,7 +125,6 @@ export const authStore=create((set,get)=>({
         
         const socket = io(API_URL, {
           query: { userId: authUser._id,
-            groupsId:groups?.map(group=>group._id).join(",")
            }
         })
         

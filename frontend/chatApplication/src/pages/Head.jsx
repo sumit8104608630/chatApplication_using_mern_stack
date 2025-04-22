@@ -45,7 +45,7 @@ const Head = () => {
 
   return (
 <nav 
-  className={`bg-[#1a1e23] border-b-1 text-white fixed top-0 w-full z-30 transition-all duration-300 ${
+  className={`bg-[#1a1e23] border-b-1 text-white sticky top-0 w-full z-30 transition-all duration-300 ${
     scrolled ? "shadow-lg shadow-black/20" : " "
   }`}
 >

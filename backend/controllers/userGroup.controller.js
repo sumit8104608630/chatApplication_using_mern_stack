@@ -3,7 +3,7 @@ import {apiResponse} from "../util/apiResponse.js"
 import {apiError} from "../util/apiError.js"
 import {uploadGroupImageFile} from "../util/cloudinary.js"
 import { fileURLToPath } from "url"; // Import to define __dirname
-
+import mongoose from "mongoose";
 // Define __dirname manually in ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,7 +81,66 @@ const get_all_group=asyncHandler(async(req,res)=>{
     }
 })
 
+
+const filterGroup =asyncHandler(async(req,res)=>{
+    try {
+            const {id}=req.user;
+            const {searchQuery} = req.query;
+            if(!id){
+                return res.status(401).json(new apiResponse(401, {}, "Unauthorized"));
+            }
+            /*
+            1.first find all group in which this user is present by it id and also with admin array
+            2.filter or match group by its name with searchQuery 
+            */
+           const groups=await Group.aggregate([
+            {
+                $match:{
+                    $or:[
+                        { members: { $in: [new mongoose.Types.ObjectId(id)] } },
+                        { admins: { $in: [new mongoose.Types.ObjectId(id)] } }
+                    ]
+                }
+            },
+            {
+                $match: searchQuery 
+                ? { name: { $regex: searchQuery, $options: 'i' } } 
+                : {}
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "members",
+                foreignField: "_id",
+                as: "memberDetails"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "admins",
+                foreignField: "_id",
+                as: "adminDetails"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                name: 1,
+            }
+        },
+
+           ])
+           return res.status(200).json(new apiResponse(200, groups, "Groups fetched successfully"));
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json(new apiResponse(500, {}, "Internal Server Error"));
+    }
+})
+
 export{
     create_group,
-    get_all_group
+    get_all_group,
+    filterGroup
 }
