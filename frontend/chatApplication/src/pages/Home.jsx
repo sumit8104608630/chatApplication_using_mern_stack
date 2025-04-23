@@ -30,6 +30,7 @@ const ChatHomePage = () => {
   const [searchInputValue,setValue]=useState({
     inputValue:"",
   })
+  const [incomingCall,setIncoming]=useState(false)
 
   const [message, setMessage] = useState({
     receiverId: "",
@@ -443,14 +444,39 @@ const handleGroupClick=(groupInfo)=>{
     getActiveUser()
   }, [getActiveUser]);
 
-  const handleCall=()=>{
-    console.log("calling....")
-  }
+  const handleCall=(to,from)=>{
+    socket.emit("call-user", {
+      to: to,     // 📌 The person you're calling
+      from: from     // 📌 You (caller)
+    });  }
   
   const handleVideoCall=()=>{
     console.log("videoCall....")
   }
   
+
+  useEffect(() => {
+    socket.on("incoming-call", ({ from,to, type }) => {
+      console.log(`Incoming ${type} call from:`, from);
+if(to==authUser._id){
+      setIncoming(from)
+}
+      // Show a modal or UI to accept/reject the call
+    });
+  
+    socket.on("call-accepted", () => {
+      console.log("Call accepted, connecting...");
+      // Trigger WebRTC or call UI here
+    });
+  
+    return () => {
+      socket.off("incoming-call");
+      socket.off("call-accepted");
+    };
+  }, [socket]);
+  
+
+
 
   return (
     <div  className="h-screen bg-[#1a1e23]  flex flex-col md:flex-row">
@@ -646,6 +672,53 @@ const handleGroupClick=(groupInfo)=>{
 </div>}
 </>
 
+{incomingCall && incomingCall.id!=authUser._id&& <div className="fixed top-4 right-4 w-80 bg-gray-900 rounded-lg shadow-xl overflow-hidden border border-gray-800 z-50">
+      {/* Header */}
+      <div className="bg-teal-500 px-4 py-2 flex items-center justify-between">
+        <span className="text-white font-medium flex items-center">
+          <Phone className="mr-2 h-4 w-4" />
+          Incoming Voice Call
+        </span>
+        <button 
+          onClick={"rejectCall"}
+          className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      
+      {/* Caller information */}
+      <div className="px-4 py-3 flex items-center">
+        <img
+          src={incomingCall.profilePhoto}
+          alt={"incomingCall.from"}
+          className="w-10 h-10 rounded-full object-cover mr-3"
+        />
+        <div>
+          <p className="font-medium text-white">{incomingCall.name}</p>
+          <p className="text-xs text-gray-400">is calling you</p>
+        </div>
+      </div>
+      
+      {/* Action buttons */}
+      <div className="flex border-t border-gray-800">
+        <button 
+          onClick={"() => acceptCall(incomingCall.from)"}
+          className="flex-1 bg-gray-800 hover:bg-gray-700 py-3 text-teal-500 font-medium transition-colors flex items-center justify-center"
+        >
+          <Phone className="mr-2 h-4 w-4" />
+          Accept
+        </button>
+        <button 
+          onClick={"rejectCall"}
+          className="flex-1 bg-gray-800 hover:bg-gray-700 py-3 text-red-500 font-medium transition-colors flex items-center justify-center border-l border-gray-700"
+        >
+          <X className="mr-2 h-4 w-4" />
+          Decline
+        </button>
+      </div>
+    </div>  
+}
 
       {/* Right Side - Chat Area */}
       {!activeGroup&&<div  className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
@@ -684,17 +757,32 @@ const handleGroupClick=(groupInfo)=>{
                 )}
               </div>
               <div className="flex items-center space-x-3">
-                <button onClick={handleCall} className="text-gray-400 hover:text-white hidden sm:block">
+                <button onClick={()=>handleCall(activeContact._id,authUser)} className="text-gray-400 hover:text-white hidden sm:block">
                   <Phone className="h-5 w-5" />
                 </button>
                 <button className="text-gray-400 hover:text-white hidden sm:block">
-                  <Video onClick={handleVideoCall} className="h-5 w-5" />
+                  <Video onClick={()=>handleVideoCall(activeContact._id,authUser._id)} className="h-5 w-5" />
                 </button>
                 <button className="text-gray-400 hover:text-white">
                   <MoreVertical className="h-5 w-5" />
                 </button>
               </div>
             </div>
+
+            
+
+
+
+
+
+ 
+
+
+
+
+
+
+
             
             {/* Messages */}
             {messageLoading ? (

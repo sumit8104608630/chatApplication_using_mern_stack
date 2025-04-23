@@ -59,20 +59,25 @@ io.on("connection", (socket) => {
         console.log("Groups joined:", groupSocketMap);
     });
 
-
-    socket.on("call-user", ({ to, from }) => {
-        const targetSocketId = getOnlineUserIds(to);
-        if (targetSocketId) {
-            io.to(targetSocketId).emit("call-user", { from });
-        }
-    });
-    
-    socket.on("accept-call", ({ to }) => {
-        const callerSocketId = getOnlineUserIds(to);
-        if (callerSocketId) {
-            io.to(callerSocketId).emit("call-accepted");
-        }
-    });
+ // In socket.on("connection")
+socket.on("call-user", ({ to, from }) => {
+    const receiverSocket=getActiveUserId(to)
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("incoming-call", {
+        from,
+        to
+      });
+    }
+  });
+  
+      
+  socket.on("accept-call", ({ to }) => {
+    const callerSocket = getOnlineUserIds(to);
+    if (callerSocket) {
+      io.to(callerSocket).emit("call-accepted");
+    }
+  });
+  
     
     socket.on("end-call", ({ to }) => {
         const targetSocketId = getOnlineUserIds(to);

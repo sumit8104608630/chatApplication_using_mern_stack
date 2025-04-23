@@ -197,5 +197,12 @@ clear_notification:(contact_id)=>{
             console.log(error)
         }
     },
+    receiverCalling:async()=>{
+        try {
+            
+        } catch (error) {
+            console.log(error)
+        }
+    }
  
 }))

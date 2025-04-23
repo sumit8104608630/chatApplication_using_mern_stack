@@ -38,7 +38,7 @@ function GroupMessages({
   const fileInputRef = useRef(null);
   const moreOptionsRef = useRef(null);
   const [groupInfo, setGroupInfo] = useState(null);
-const {contacts}=messageStore()
+  const {contacts}=messageStore()
   const [message, setMessage] = useState({
     receiverId: "",
     message: "",
