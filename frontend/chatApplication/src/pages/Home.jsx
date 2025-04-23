@@ -451,9 +451,7 @@ const handleGroupClick=(groupInfo)=>{
     console.log("videoCall....")
   }
   
-  if (contactsLoading) {
-    return <>Loading...</>;
-  }
+
   return (
     <div  className="h-screen bg-[#1a1e23]  flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
@@ -505,7 +503,7 @@ const handleGroupClick=(groupInfo)=>{
   {/* Contacts List */}
   {activeTab === 'contacts' && (
     <div className="flex-1 overflow-y-auto">
-      {filterLoading ? (
+      {filterLoading&& searchInputValue.inputValue!="" ? (
         // Loading state for contacts with Lucide icon
         <div className="flex flex-col items-center justify-center h-40 space-y-2">
           <Loader className="w-8 h-8 text-white animate-spin" />
@@ -520,7 +518,7 @@ const handleGroupClick=(groupInfo)=>{
         </div>
       ) : (
         // Contacts list
-        filterArray.map((contact) => {
+        (searchInputValue.inputValue !== "" ? filterArray : contacts).map((contact) => {
           const messageStatus = getContactMessageStatus(contact);
           
           return (
@@ -576,7 +574,7 @@ const handleGroupClick=(groupInfo)=>{
   {/* Groups List */}
   {activeTab === 'groups' && (
     <div className="flex-1 overflow-y-auto">
-      {filterGroupLoading ? (
+      {filterGroupLoading &&searchInputValue.inputValue !== "" ? (
         // Loading state for groups with Lucide icon
         <div className="flex flex-col items-center justify-center h-40 space-y-2">
           <Loader className="w-8 h-8 text-white animate-spin" />
@@ -591,7 +589,7 @@ const handleGroupClick=(groupInfo)=>{
         </div>
       ) : (
         // Groups list
-        filterGroupArray?.map((group) => {
+        (searchInputValue.inputValue !== "" ?filterGroupArray:groups).map((group) => {
           return (
             <div 
               key={group._id}
