@@ -611,7 +611,7 @@ useEffect(() => {
   socket.on("ice-candidate", async ({ candidate }) => {
     try {
       if (candidate) {
-        await peer.addIceCandidate(new RTCIceCandidate(candidate));
+        await peer?.addIceCandidate(new RTCIceCandidate(candidate));
         console.log("Added ICE candidate");
       }
     } catch (error) {
@@ -662,8 +662,8 @@ useEffect(() => {
 useEffect(() => {
   socket.on("ice-candidate", async ({ candidate }) => {
     try {
-      if (candidate && peer.remoteDescription) {
-        await peer.addIceCandidate(new RTCIceCandidate(candidate));
+      if (candidate && peer?.remoteDescription) {
+        await peer?.addIceCandidate(new RTCIceCandidate(candidate));
         console.log("Added ICE candidate");
       }
     } catch (error) {

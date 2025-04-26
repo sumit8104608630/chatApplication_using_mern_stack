@@ -17,7 +17,7 @@ export default function CallerInterface({ callData, endCall, localStream, callOn
     if (localStream && localAudioRef.current) {
       localAudioRef.current.srcObject = localStream;
       // Explicitly call play to ensure audio starts
-      localAudioRef.current.play().catch(e => {
+      localAudioRef?.current.play().catch(e => {
         console.error("Error playing local audio:", e);
       });
     }
