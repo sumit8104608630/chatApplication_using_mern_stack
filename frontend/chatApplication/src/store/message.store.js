@@ -2,6 +2,7 @@ import {create} from "zustand"
 import { axiosInstance } from "../lib/axios"
 import { Contact } from "lucide-react"
 import { authStore } from "./userAuth.store"
+import { Socket } from "socket.io-client"
 
 export const messageStore=create((set,get)=>({
     contacts:[],
@@ -203,6 +204,7 @@ clear_notification:(contact_id)=>{
         } catch (error) {
             console.log(error)
         }
-    }
+    },
+  
  
 }))

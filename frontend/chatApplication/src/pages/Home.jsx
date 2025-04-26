@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { 
   Search, MoreVertical, Phone, Video, Send, PlusCircle, Paperclip, 
@@ -12,17 +12,19 @@ import GroupMessages from './GroupMessages.jsx';
 import { groupMessageStore } from '../store/groupMessage.store.js';
 import { debounce } from '../utils/debounce.js';
 import { Loader } from 'lucide-react';
-
+import VoiceCall from '../components/VoiceCall.jsx';
+import CallerInterface from '../components/Calling.jsx';
+import { usePeer } from '../components/Peer.jsx';
 
 const ChatHomePage = () => {
   const{get_all_groupMessage,setSelectedGroup,groupSubScribe,selectedGroup,unGroupSubScribe}=groupMessageStore();
-      const {createGroup,isCreatingGroup,filterGroupLoading,groups,filterGroupArray,filter_groups}=groupStore()
+      const {filterGroupLoading,groups,filterGroupArray,filter_groups}=groupStore()
     const navigate=useNavigate()
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
-  const { get_online_user, activeUser, selectUser,socket, getActiveUser, deleteActiveUser, authUser,connection } = authStore();
+  const { get_online_user, activeUser, selectUser,socket, getActiveUser, deleteActiveUser, authUser } = authStore();
   const { 
-    contactsLoading, get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,clear_notification,filter_contacts,filterArray,filterLoading,
+     get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,clear_notification,filter_contacts,filterArray,filterLoading,
     messages, setSelectedUser, subScribe, selectedUser, unSubScribe,messageLoading,locallyUpdateMessage,messageSendingLoading,get_Notify,notify,notifyMessage
   } = messageStore();
   const [activeTab, setActiveTab] = useState('contacts');
@@ -31,8 +33,8 @@ const ChatHomePage = () => {
     inputValue:"",
   })
   const [incomingCall,setIncoming]=useState(false)
-
-  const [message, setMessage] = useState({
+  const { peer, createOffer, create_answer, setRemoteAnswer, sendStream, setActiveCallTarget, remoteStream } = usePeer();
+    const [message, setMessage] = useState({
     receiverId: "",
     message: "",
     status: "",
@@ -46,7 +48,7 @@ const ChatHomePage = () => {
   const [fullViewImage, setFullViewImage] = useState(null);
   const [activeContact, setActiveContact] = useState(null);
   const [showContactsOnMobile, setShowContactsOnMobile] = useState(true);
-
+  const [calling,setCalling]=useState(null)
   useEffect(() => {
     get_all_contacts();
   }, [get_all_contacts]);
@@ -444,37 +446,236 @@ const handleGroupClick=(groupInfo)=>{
     getActiveUser()
   }, [getActiveUser]);
 
-  const handleCall=(to,from)=>{
-    socket.emit("call-user", {
-      to: to,     // 📌 The person you're calling
-      from: from     // 📌 You (caller)
-    });  }
+
+
+
+
+
+
+
+
+
+
+  const [myStream, setMyStream] = useState(null);
+
+    const getUserMediaStream = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      setMyStream(stream);
+    } catch (error) {
+      console.error("Error getting user media:", error);
+    }
+  }, []);
   
-  const handleVideoCall=()=>{
-    console.log("videoCall....")
-  }
+  useEffect(() => {
+    getUserMediaStream();
+  }, [getUserMediaStream]);
   
+  // Make a call to another user
+  const handleCall = useCallback(async (to, from) => {
+    if (!calling) {
+      try {
+        // Set active call target for ICE candidates
+        setActiveCallTarget(to._id);
+        
+        // Get media first
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        setMyStream(stream);
+        
+        // Pass stream to createOffer
+        const offer = await createOffer(stream);
+        
+        socket.emit("call-user", {
+          to: to._id,
+          from: from,
+          offer
+        });
+        
+        to.from = from._id;
+        setCalling(to);
+      } catch (error) {
+        console.error("Error making call:", error);
+      }
+    }
+  }, [calling, createOffer, socket, setActiveCallTarget]);
+  
+  // Handle incoming calls
+  const [callOn,setOn]=useState(false)
 
   useEffect(() => {
-    socket.on("incoming-call", ({ from,to, type }) => {
-      console.log(`Incoming ${type} call from:`, from);
-if(to==authUser._id){
-      setIncoming(from)
-}
-      // Show a modal or UI to accept/reject the call
+    socket.on("incoming-call", ({ from, to, offer }) => {
+      if (to === authUser._id) {
+        console.log("Incoming call received", offer);
+        from.offer = offer;
+        setIncoming(from);
+      }
     });
-  
-    socket.on("call-accepted", () => {
-      console.log("Call accepted, connecting...");
-      // Trigger WebRTC or call UI here
+    socket.on("call-accepted", async ({ answer }) => {
+      console.log("Call accepted, connecting...", answer);
+      await setRemoteAnswer(answer);
+      
+      // Send our stream to the other person
+      if (myStream) {
+        await sendStream(myStream);
+        setOn(true)
+      }
     });
-  
+    
     return () => {
       socket.off("incoming-call");
       socket.off("call-accepted");
     };
-  }, [socket]);
+  }, [socket, authUser, setRemoteAnswer, myStream, sendStream]);
   
+  // Handle ended calls
+  useEffect(() => {
+    socket.on("endCall", ({ to }) => {
+      if (to === authUser?._id) {
+        setIncoming(null);
+        setCalling(null);
+        console.log("Call ended");
+      }
+    });
+    
+    socket.on("decline", ({ to }) => {
+      if (to === authUser._id) {
+        console.log("Call declined");
+        setCalling(null);
+      }
+    });
+    
+    return () => {
+      socket.off("endCall");
+      socket.off("decline");
+    };
+  }, [socket, authUser]);
+  
+  // Handle accepting an incoming call
+  
+// When accepting a call:
+const acceptIncomingCall = async () => {
+  try {
+    // Set active call target for ICE candidates
+    setActiveCallTarget(incomingCall._id);
+    
+    // Get media first if not already obtained
+    if (!myStream) {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      setMyStream(stream);
+    }
+    
+    // Pass stream to create_answer
+    const answer = await create_answer(incomingCall.offer, myStream);
+    
+    socket.emit("accept-call", {
+      from: authUser._id,
+      to: incomingCall._id,
+      answer
+    });
+  } catch (error) {
+    console.error("Error accepting call:", error);
+  }
+};
+  
+  // Reject an incoming call
+  const rejectCall = () => {
+    socket.emit("decline", {
+      to: incomingCall._id,
+    });
+    setIncoming(null);
+    setOn(false)
+  };
+  
+  // End an active call
+  const endCall = () => {
+    socket.emit("endCall", {
+      to: calling._id,
+      from: calling.from || authUser._id
+    });
+    setCalling(null);
+    setOn(false)
+  };
+
+
+
+
+
+
+
+
+// In your main component where socket events are handled
+useEffect(() => {
+  // Existing socket event handlers...
+  
+  // Add ICE candidate handling
+  socket.on("ice-candidate", async ({ candidate }) => {
+    try {
+      if (candidate) {
+        await peer.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log("Added ICE candidate");
+      }
+    } catch (error) {
+      console.error("Error adding ICE candidate:", error);
+    }
+  });
+  
+  return () => {
+    // Existing socket event cleanup...
+    socket.off("ice-candidate");
+  };
+}, [socket, peer]);
+
+// In your PeerContext component, add this socket emit
+// const handleIceCandidate = useCallback((event) => {
+//   if (event.candidate) {
+//     console.log("New ICE candidate:", event.candidate);
+//     socket.emit("ice-candidate", { 
+//       candidate: event.candidate,
+//       to: activeContact?._id || (calling?._id || incomingCall?._id)
+//     });
+//   }
+// }, [socket, activeContact, calling, incomingCall]);
+
+
+
+// Add this to your ChatHomePage.jsx
+useEffect(() => {
+  if (myStream) {
+    console.log("Local stream tracks:", myStream.getTracks().map(t => ({
+      kind: t.kind,
+      enabled: t.enabled,
+      readyState: t.readyState
+    })));
+  }
+  
+  if (remoteStream) {
+    console.log("Remote stream tracks:", remoteStream.getTracks().map(t => ({
+      kind: t.kind,
+      enabled: t.enabled,
+      readyState: t.readyState
+    })));
+  }
+}, [myStream, remoteStream]);
+
+
+// Add this to your component where you handle socket events
+useEffect(() => {
+  socket.on("ice-candidate", async ({ candidate }) => {
+    try {
+      if (candidate && peer.remoteDescription) {
+        await peer.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log("Added ICE candidate");
+      }
+    } catch (error) {
+      console.error("Error adding ICE candidate:", error);
+    }
+  });
+  
+  return () => {
+    socket.off("ice-candidate");
+  };
+}, [socket, peer]);
+
 
 
 
@@ -672,53 +873,24 @@ if(to==authUser._id){
 </div>}
 </>
 
-{incomingCall && incomingCall.id!=authUser._id&& <div className="fixed top-4 right-4 w-80 bg-gray-900 rounded-lg shadow-xl overflow-hidden border border-gray-800 z-50">
-      {/* Header */}
-      <div className="bg-teal-500 px-4 py-2 flex items-center justify-between">
-        <span className="text-white font-medium flex items-center">
-          <Phone className="mr-2 h-4 w-4" />
-          Incoming Voice Call
-        </span>
-        <button 
-          onClick={"rejectCall"}
-          className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      
-      {/* Caller information */}
-      <div className="px-4 py-3 flex items-center">
-        <img
-          src={incomingCall.profilePhoto}
-          alt={"incomingCall.from"}
-          className="w-10 h-10 rounded-full object-cover mr-3"
+{incomingCall && (
+        <VoiceCall 
+        acceptIncomingCall={acceptIncomingCall}
+          incomingCall={incomingCall}
+          rejectCall={rejectCall}
+          createOffer={create_answer} // Use create_answer from PeerContext
         />
-        <div>
-          <p className="font-medium text-white">{incomingCall.name}</p>
-          <p className="text-xs text-gray-400">is calling you</p>
-        </div>
-      </div>
-      
-      {/* Action buttons */}
-      <div className="flex border-t border-gray-800">
-        <button 
-          onClick={"() => acceptCall(incomingCall.from)"}
-          className="flex-1 bg-gray-800 hover:bg-gray-700 py-3 text-teal-500 font-medium transition-colors flex items-center justify-center"
-        >
-          <Phone className="mr-2 h-4 w-4" />
-          Accept
-        </button>
-        <button 
-          onClick={"rejectCall"}
-          className="flex-1 bg-gray-800 hover:bg-gray-700 py-3 text-red-500 font-medium transition-colors flex items-center justify-center border-l border-gray-700"
-        >
-          <X className="mr-2 h-4 w-4" />
-          Decline
-        </button>
-      </div>
-    </div>  
-}
+      )}
+{calling && (
+        <CallerInterface 
+        callOn={callOn}
+
+          callData={calling}
+          endCall={endCall}
+          localStream={myStream}
+        />
+      )}
+
 
       {/* Right Side - Chat Area */}
       {!activeGroup&&<div  className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
@@ -757,11 +929,11 @@ if(to==authUser._id){
                 )}
               </div>
               <div className="flex items-center space-x-3">
-                <button onClick={()=>handleCall(activeContact._id,authUser)} className="text-gray-400 hover:text-white hidden sm:block">
+                <button onClick={()=>handleCall(activeContact,authUser)} className="text-gray-400 hover:text-white hidden sm:block">
                   <Phone className="h-5 w-5" />
                 </button>
                 <button className="text-gray-400 hover:text-white hidden sm:block">
-                  <Video onClick={()=>handleVideoCall(activeContact._id,authUser._id)} className="h-5 w-5" />
+                  <Video onClick={()=>{}} className="h-5 w-5" />
                 </button>
                 <button className="text-gray-400 hover:text-white">
                   <MoreVertical className="h-5 w-5" />

@@ -1,6 +1,6 @@
 import express from "express"
 import http from "http"
-import {ExpressPeerServer} from "peer"
+import { ExpressPeerServer } from "peer";
 import cookieParser from "cookie-parser"
 import {Server} from "socket.io"
 import cors from "cors"
@@ -60,32 +60,60 @@ io.on("connection", (socket) => {
     });
 
  // In socket.on("connection")
-socket.on("call-user", ({ to, from }) => {
-    const receiverSocket=getActiveUserId(to)
+socket.on("call-user", ({ to, from,offer }) => {
+    const receiverSocket=getOnlineUserIds(to)
     if (receiverSocket) {
       io.to(receiverSocket).emit("incoming-call", {
         from,
-        to
+        to,
+        offer
       });
     }
   });
   
       
-  socket.on("accept-call", ({ to }) => {
+  socket.on("accept-call", ({from, to ,answer}) => {
     const callerSocket = getOnlineUserIds(to);
     if (callerSocket) {
-      io.to(callerSocket).emit("call-accepted");
+      io.to(callerSocket).emit("call-accepted",{answer});
     }
   });
   
     
-    socket.on("end-call", ({ to }) => {
-        const targetSocketId = getOnlineUserIds(to);
-        if (targetSocketId) {
-            io.to(targetSocketId).emit("call-ended");
-        }
-    });
-    
+  socket.on("decline", ({ to }) => {
+    console.log("user",to)
+    const targetSocketId = getOnlineUserIds(to);  // this should return caller's socket ID
+    if (targetSocketId) {
+        console.log("yes")
+      io.to(targetSocketId).emit("decline",{
+        to
+      });
+    }
+  });
+
+
+  socket.on("ice-candidate", ({ candidate, to }) => {
+    console.log(`Received ICE candidate for ${to}`);
+    const targetSocketId = getOnlineUserIds(to);
+    if (targetSocketId) {
+      console.log(`Forwarding ICE candidate to ${to} (${targetSocketId})`);
+      io.to(targetSocketId).emit("ice-candidate", { candidate });
+    } else {
+      console.log(`Target user ${to} is not online`);
+    }
+  });
+
+  socket.on("endCall",({to,from})=>{
+    const targetId=getOnlineUserIds(to);
+    if(targetId){
+        io.to(targetId).emit("endCall",{
+            to,
+            from
+        })
+    }
+  })
+  
+
 
     // Emit initial data
     io.emit("onlineUser", Object.keys(userSocketMap));
@@ -135,6 +163,8 @@ export function getActiveUserId(userId) {
         pair.authUserId === userId || pair.selectedUserId === userId
     );
 }
+
+
 
 app.use(cors({
     origin: origin,

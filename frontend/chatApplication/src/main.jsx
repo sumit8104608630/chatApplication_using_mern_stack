@@ -13,6 +13,7 @@ import Profile from './pages/Profile.jsx';
 import Error from './pages/Error.jsx';
 import AddContactPage from './pages/AddContactPage.jsx';
 import { groupStore } from './store/group.store.js';
+import { PeerProvider } from './components/Peer.jsx';
 const App = () => {
   const {get_all_group}=groupStore()
   const { authUser, checkAuth, isCheckingAuth,isUpdatingProfile ,get_online_user} = authStore();
@@ -33,6 +34,7 @@ const App = () => {
     );
   }
   return (
+    <PeerProvider>
     <Router>
       <Routes>
         <Route path="/" element={<Layout />}>
@@ -46,6 +48,7 @@ const App = () => {
         </Route>
       </Routes>
     </Router>
+    </PeerProvider>
   );
 };
 

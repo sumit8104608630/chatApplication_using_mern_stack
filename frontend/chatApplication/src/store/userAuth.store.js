@@ -125,6 +125,7 @@ export const authStore=create((set,get)=>({
         
         const socket = io(API_URL, {
           query: { userId: authUser._id,
+            transports: ['websocket']
            }
         })
         
