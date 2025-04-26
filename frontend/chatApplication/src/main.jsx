@@ -14,17 +14,18 @@ import Error from './pages/Error.jsx';
 import AddContactPage from './pages/AddContactPage.jsx';
 import { groupStore } from './store/group.store.js';
 import { PeerProvider } from './components/Peer.jsx';
+
 const App = () => {
-  const {get_all_group}=groupStore()
-  const { authUser, checkAuth, isCheckingAuth,isUpdatingProfile ,get_online_user} = authStore();
+  const { get_all_group } = groupStore();
+  const { authUser, checkAuth, isCheckingAuth, isUpdatingProfile, get_online_user } = authStore();
 
   useEffect(() => {
     checkAuth(); // ✅ Check auth on mount
-  }, [checkAuth]); 
- 
-   useEffect(() => {
-      get_all_group()
-    },[get_all_group])
+  }, [checkAuth]);
+
+  useEffect(() => {
+    get_all_group();
+  }, [get_all_group]);
 
   if (isCheckingAuth) {
     return (
@@ -33,8 +34,8 @@ const App = () => {
       </div>
     );
   }
-  return (
-    <PeerProvider>
+
+  const RouterApp = (
     <Router>
       <Routes>
         <Route path="/" element={<Layout />}>
@@ -42,13 +43,21 @@ const App = () => {
           <Route path="login" element={!authUser ? <Login /> : <Navigate to="/" />} />
           <Route path="signUpPage" element={!authUser ? <SignUpPage /> : <Navigate to="/" />} />
           <Route path="profile" element={authUser ? <Profile /> : <Navigate to="/login" />} />
-          <Route path="contacts" element={authUser ? <AddContactPage/> : <Navigate to="/login" />} />
-          <Route path="createGroup" element={authUser ? <GroupForm/> : <Navigate to="/login" />} />
-          <Route path="*" element={<Error/> }/>
+          <Route path="contacts" element={authUser ? <AddContactPage /> : <Navigate to="/login" />} />
+          <Route path="createGroup" element={authUser ? <GroupForm /> : <Navigate to="/login" />} />
+          <Route path="*" element={<Error />} />
         </Route>
       </Routes>
     </Router>
+  );
+
+  // ⬇️ If user is authenticated, wrap RouterApp with PeerProvider
+  return authUser ? (
+    <PeerProvider>
+      {RouterApp}
     </PeerProvider>
+  ) : (
+    RouterApp
   );
 };
 

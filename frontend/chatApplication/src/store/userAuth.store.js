@@ -120,7 +120,6 @@ export const authStore=create((set,get)=>({
     connection: async() => {
       try {
         const {authUser} = get()
-        const groups= groupStore.getState().groups
         if (!authUser || get().socket?.connected) return;
         
         const socket = io(API_URL, {

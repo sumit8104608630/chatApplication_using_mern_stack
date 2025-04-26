@@ -28,6 +28,10 @@ export const PeerProvider = ({ children }) => {
 
     // Handle ICE candidate events
     peer.onicecandidate = (event) => {
+      if (!socket) {
+        return
+      }
+    
       if (event.candidate) {
         console.log("Generated ICE candidate", event.candidate);
         // Emit the candidate to the other peer through the server
@@ -156,6 +160,10 @@ export const PeerProvider = ({ children }) => {
   // Listen for ICE candidates from the server
   useEffect(() => {
     const handleIceCandidate = async ({ candidate }) => {
+      if (!socket) {
+        return null;
+      }
+    
       try {
         const peer = peerRef.current;
         if (peer && candidate) {
