@@ -79,6 +79,7 @@ export const authStore=create((set,get)=>({
             console.log(error)
         }
     },
+
     signUp:async(formData,navigate)=>{
            try {
              const uploadData = new FormData();
@@ -124,7 +125,7 @@ export const authStore=create((set,get)=>({
         
         const socket = io(API_URL, {
           query: { userId: authUser._id,
-            transports: ['websocket']
+//            transports: ['websocket']
            }
         })
         
@@ -155,30 +156,47 @@ export const authStore=create((set,get)=>({
           query: { selected_id: connect_id , authUserId: authUserId}
 
         });
-        socket.on('getActiveUser', (activeUsers) => {
-          // Prevent [null] by ensuring we always have an array
-          set({ activeUser: Array.isArray(activeUsers) ? activeUsers.filter(Boolean) : [] });
-      });
+    get().getActiveUser()
       } catch (error) {
         console.log(error)
       }
     },
-    getActiveUser:async()=>{
-      try {
-        const socket=io(API_URL)
-        socket.on("getActiveUser",(activeUser)=>{
-          set({ activeUser: activeUser })
-        })
+  getActiveUser: async() => {
+  try {
+    const { socket } = get();
+    console.log("Socket available:", !!socket);
+    if (!socket) return;
+    socket.on("getActiveUser", (activeUser) => {
+      console.log("Received activeUser data:", activeUser);
+      try { 
+        set({ activeUser: activeUser });
+        console.log("State updated successfully");
       } catch (error) {
-        console.log(error)
+        console.log("Error in set function:", error);
       }
-    }
-    ,deleteActiveUser:async(userId)=>{
+    });
+  } catch (error) {
+    console.log("Error in getActiveUser:", error);
+  }
+} ,
+    
+deleteActiveUser: async(userIdObj) => {
+  if (!userIdObj || !userIdObj.authUserId || !userIdObj.selectedId) {
+    console.error('Invalid user object for deletion', userIdObj);
+    throw new Error('Invalid user data provided');
+  }
+  const {socket} = get();
+  socket.emit('delete_active_user', userIdObj);
+}
+,
+
+delete_authUserMatchId:async(userId)=>{
+  console.log(userId)
       const {socket}=get();
-      socket.emit('delete_active_user',userId);
-    },
-    delete_all_previous_activeUser:async()=>{
-      const {socket}=get();
-      socket.emit('delete_all_previous_activeUser');
+      socket.emit('delete_authUserMatchId',userId);
     }
+
+
+
+
 }))

@@ -33,7 +33,6 @@ export const PeerProvider = ({ children }) => {
       }
     
       if (event.candidate) {
-        console.log("Generated ICE candidate", event.candidate);
         // Emit the candidate to the other peer through the server
         socket.emit("ice-candidate", {
           candidate: event.candidate,
@@ -44,7 +43,6 @@ export const PeerProvider = ({ children }) => {
 
     // Handle incoming tracks (audio/video)
     peer.ontrack = (event) => {
-      console.log("Received remote track", event.streams[0]);
       setRemoteStream(event.streams[0]);
     };
 
@@ -78,7 +76,6 @@ export const PeerProvider = ({ children }) => {
       // Create and set local description
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
-      console.log("Created offer:", offer);
       return offer;
     } catch (error) {
       console.error("Error creating offer:", error);
@@ -102,7 +99,6 @@ export const PeerProvider = ({ children }) => {
       // Create and set local description (the answer)
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
-      console.log("Created answer:", answer);
       return answer;
     } catch (error) {
       console.error("Error creating answer:", error);
@@ -116,7 +112,6 @@ export const PeerProvider = ({ children }) => {
       const peer = peerRef.current;
       if (peer && answer) {
         await peer.setRemoteDescription(new RTCSessionDescription(answer));
-        console.log("Set remote answer");
       }
     } catch (error) {
       console.error("Error setting remote answer:", error);
@@ -144,7 +139,6 @@ export const PeerProvider = ({ children }) => {
             }
           });
         }
-        console.log("Stream sent to peer connection");
       }
     } catch (error) {
       console.error("Error sending stream:", error);
@@ -170,7 +164,6 @@ export const PeerProvider = ({ children }) => {
           // Check if remote description is set before adding ICE candidate
           if (peer.remoteDescription) {
             await peer.addIceCandidate(new RTCIceCandidate(candidate));
-            console.log("Added ICE candidate");
           } else {
             console.log("Delayed ICE candidate - remote description not set yet");
             // Could implement a queue for delayed candidates if needed

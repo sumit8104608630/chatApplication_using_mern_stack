@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Phone, X, Mic, MicOff } from 'lucide-react';
 import { usePeer } from './Peer'; // Import the peer context
+import { Socket } from 'socket.io-client';
+import { authStore } from '../store/userAuth.store';
 
 export default function CallerInterface({ callData, endCall, localStream, callOn }) {
   const { remoteStream } = usePeer(); // Get the remote stream from context
   const [isMuted, setIsMuted] = useState(false);
   const [callStatus, setCallStatus] = useState('dialing'); // dialing, connected, ended
   const [callDuration, setCallDuration] = useState("00:00");
-  
+  const {authUser}=authStore()
   const localAudioRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const timerRef = useRef(null);
@@ -17,7 +19,7 @@ export default function CallerInterface({ callData, endCall, localStream, callOn
     if (localStream && localAudioRef.current) {
       localAudioRef.current.srcObject = localStream;
       // Explicitly call play to ensure audio starts
-      localAudioRef?.current.play().catch(e => {
+      localAudioRef?.current?.play().catch(e => {
         console.error("Error playing local audio:", e);
       });
     }
@@ -96,6 +98,17 @@ export default function CallerInterface({ callData, endCall, localStream, callOn
     }
     endCall();
   };
+
+// useEffect(()=>{
+//   Socket.on("decline", ({ to }) => {
+//     if (to === authUser._id) {
+//       console.log("Call declined");
+//       if (timerRef.current) {
+//         clearInterval(timerRef.current);
+//       }
+//     }
+//   });
+// },[authUser])
   
   return (
     <div className="fixed top-4 right-4 w-80 bg-gray-900 rounded-lg shadow-xl overflow-hidden border border-gray-800 z-50">

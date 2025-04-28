@@ -41,8 +41,6 @@ const store_messages=asyncHandler(async(req,res)=>{
                     const  req_url=await uploadVideoFile(local_path);
                     videoUrl=req_url.secure_url;
                 }
-                
-          
             }
             const message_obj=new Message({
                 message,

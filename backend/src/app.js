@@ -18,7 +18,7 @@ export const io = new Server(server, {
 
 const userSocketMap = {} // {userId: socketId}
 const groupSocketMap={}// all active userGroup
-let active = [] // array of objects: [{authUserId: "123", selectedUserId: "456"}, ...]
+let active = []
 
 // Socket.io event handling when a client connects
 io.on("connection", (socket) => {
@@ -34,9 +34,45 @@ io.on("connection", (socket) => {
     }
 
     // ✅ Handle 1-to-1 active user logic
-    if (authUserId && selectedId) {
-        active.push({ authUserId, selectedId });
+    if(selectedId && authUserId) {
+    active.push({
+      authUserId: authUserId, 
+      selectedId: selectedId
+  });
+    } 
+   // console.log(active)
+    io.emit("onlineUser", Object.keys(userSocketMap));
+   io.emit("getActiveUser", active);
+
+   
+   socket.on('delete_active_user', ({ authUserId, selectedId }) => {
+    // First check if either ID is null or undefined
+    if (!authUserId || !selectedId) {
+      console.log('Invalid IDs received:', authUserId, selectedId);
+      return; // Exit early if either ID is missing
     }
+    
+    console.log('Deleting active user:', authUserId, selectedId);
+    
+    // Remove the specific pair that matches both IDs exactly
+    active = active.filter(pair => 
+      !(pair.authUserId === authUserId && pair.selectedId === selectedId)
+    );
+    
+    io.emit('getActiveUser', active);
+  });
+
+  socket.on('delete_authUserMatchId', (userId) => {
+    // console.log(userId)
+    active = active.filter(pair => 
+      !(pair.authUserId === userId )
+    );
+    io.emit('getActiveUser', active);
+});
+
+
+
+
 
 
     // ✅ Handle group joining (if groupIds provided)
@@ -56,7 +92,7 @@ io.on("connection", (socket) => {
             });
         }
 
-        console.log("Groups joined:", groupSocketMap);
+        // console.log("Groups joined:", groupSocketMap);
     });
 
  // In socket.on("connection")
@@ -66,11 +102,11 @@ socket.on("call-user", ({ to, from,offer }) => {
       io.to(receiverSocket).emit("incoming-call", {
         from,
         to,
-        offer
+        offer 
       });
     }
   });
-  
+   
       
   socket.on("accept-call", ({from, to ,answer}) => {
     const callerSocket = getOnlineUserIds(to);
@@ -95,7 +131,7 @@ socket.on("call-user", ({ to, from,offer }) => {
   socket.on("ice-candidate", ({ candidate, to }) => {
     console.log(`Received ICE candidate for ${to}`);
     const targetSocketId = getOnlineUserIds(to);
-    if (targetSocketId) {
+    if (targetSocketId) {  
       console.log(`Forwarding ICE candidate to ${to} (${targetSocketId})`);
       io.to(targetSocketId).emit("ice-candidate", { candidate });
     } else {
@@ -115,22 +151,13 @@ socket.on("call-user", ({ to, from,offer }) => {
   
 
 
-    // Emit initial data
-    io.emit("onlineUser", Object.keys(userSocketMap));
-    io.emit("getActiveUser", active);
+
 
     // ✅ Clear a specific user's active chats
-    socket.on('delete_active_user', (userId) => {
-        active = active.filter(pair =>
-            pair.authUserId !== userId && pair.selectedId !== userId
-        );
-        io.emit('getActiveUser', active);
-    });
+   
 
-    socket.on('delete_all_previous_activeUser', () => {
-        active = [];
-        io.emit('getActiveUser', active);
-    });
+    
+   
 
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.id}`);
@@ -174,15 +201,15 @@ app.use(express.json({limit:"1mb"}));
 app.use(express.urlencoded({limit:"16kb", extended:true}));
 app.use(express.static("public"));
 app.use(cookieParser());
-
+   
 import userRoutes from "../routes/user.routes.js";
 import messageRoute from "../routes/message.routes.js";
-import groupRoute from  "../routes/group.routes.js"
-import groupMessageRoute from "../routes/groupMessage.routes.js"
+import groupRoute from  "../routes/group.routes.js"  
+import groupMessageRoute from "../routes/groupMessage.routes.js" 
 app.use("/user", userRoutes);
-app.use("/message", messageRoute);
+app.use("/message", messageRoute);  
 app.use("/group",groupRoute);
 app.use("/groupMessage",groupMessageRoute);
 
 
-export default server;
+export default server; 

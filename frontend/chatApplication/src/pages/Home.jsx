@@ -22,10 +22,10 @@ const ChatHomePage = () => {
     const navigate=useNavigate()
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
-  const { get_online_user, activeUser, selectUser,socket, getActiveUser, deleteActiveUser, authUser } = authStore();
+  const { get_online_user, activeUser, selectUser,socket, getActiveUser, deleteActiveUser, authUser,delete_authUserMatchId } = authStore();
   const { 
      get_all_contacts, contacts, send_message, getAll_messages,update_message_array_to_seen,locallyUpdate_toSeen,clear_notification,filter_contacts,filterArray,filterLoading,
-    messages, setSelectedUser, subScribe, selectedUser, unSubScribe,messageLoading,locallyUpdateMessage,messageSendingLoading,get_Notify,notify,notifyMessage
+    messages, setSelectedUser, subScribe, selectedUser, unSubScribe,messageLoading,locallyUpdateMessage,messageSendingLoading,get_Notify,notify,notifyMessage,getNewContact,unSubScrContact
   } = messageStore();
   const [activeTab, setActiveTab] = useState('contacts');
   const [activeGroup, setActiveGroup] = useState(null);
@@ -90,11 +90,17 @@ return ()=>{
       }
     }
   }, [selectedUser, unSubScribe, subScribe, activeContact, deleteActiveUser]);
+
+
+  useEffect(()=>{
+    getNewContact();
+
+    return ()=>{
+      unSubScrContact()
+    }
+  },[getNewContact,unSubScrContact,socket])
   useEffect(() => {
-    // Clear any existing subscription
-    //unGroupSubScribe();
     
-    // Only subscribe if we have a selected group
     if (selectedGroup) {
       groupSubScribe();
     }
@@ -196,6 +202,11 @@ const handleGroupClick=(groupInfo)=>{
 
   setActiveGroup(groupInfo)
 }
+
+
+
+
+
   const handleContactClick = (contactId) => {
     setActiveGroup(null)
     // Delete previous active user if exists
@@ -204,7 +215,11 @@ const handleGroupClick=(groupInfo)=>{
     }
     clear_notification(contactId._id)
     if (activeContact) {
-      deleteActiveUser(authUser._id);
+      console.log(activeContact)
+      deleteActiveUser({
+        authUserId: authUser._id,
+        selectedId: activeContact._id
+      });    
     }
     
     if(get_online_user.includes(authUser._id)){
@@ -220,6 +235,9 @@ const handleGroupClick=(groupInfo)=>{
     setShowContactsOnMobile(false);
     socket.off("newNotification")
   };
+
+
+
 
   const [isMounted, setIsMounted] = useState(false);
 
@@ -244,11 +262,24 @@ const handleGroupClick=(groupInfo)=>{
     }
   }, [isMounted, activeUser, activeContact?._id, authUser?._id, locallyUpdate_toSeen]);
 
+  console.log(activeUser)
+
   useEffect(() => {
-    deleteActiveUser(activeContact?._id);
-    // First delete the current active user
-    return()=>            deleteActiveUser(authUser?._id);
-  }, []);
+    delete_authUserMatchId(authUser._id);    // First delete the current active user
+    return()=>       {
+      deleteActiveUser({
+        authUserId: authUser._id,
+        selectedId: activeContact?._id
+      });
+
+        }
+  }, [activeContact?._id,deleteActiveUser,authUser?._id,delete_authUserMatchId]);
+  useEffect(()=>{
+return()=>{
+  socket.off("newNotification")
+
+}
+  },[socket])
 
   useEffect(()=>{
     if(get_online_user.includes(activeContact?._id)){
@@ -257,11 +288,16 @@ const handleGroupClick=(groupInfo)=>{
   },[get_online_user,activeContact])
 
   const handleBackToContacts = () => {
+    deleteActiveUser({
+      authUserId: authUser._id,
+      selectedId: activeContact?._id
+    });
+    setActiveContact(null)
     setSelectedUser(null);
     setSelectedGroup(null);
     setActiveGroup(null)
     setShowContactsOnMobile(true);
-    deleteActiveUser(authUser._id)
+   
     //socket.off("newNotification")
 
   };
@@ -446,15 +482,7 @@ const handleGroupClick=(groupInfo)=>{
     getActiveUser()
   }, [getActiveUser]);
 
-
-
-
-
-
-
-
-
-
+ 
 
   const [myStream, setMyStream] = useState(null);
 

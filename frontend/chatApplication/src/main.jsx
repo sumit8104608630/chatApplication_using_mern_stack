@@ -17,11 +17,12 @@ import { PeerProvider } from './components/Peer.jsx';
 
 const App = () => {
   const { get_all_group } = groupStore();
-  const { authUser, checkAuth, isCheckingAuth, isUpdatingProfile, get_online_user } = authStore();
+  const { authUser, checkAuth, isCheckingAuth, isUpdatingProfile, get_online_user,connection ,getActiveUser} = authStore();
 
   useEffect(() => {
-    checkAuth(); // ✅ Check auth on mount
-  }, [checkAuth]);
+    checkAuth(); 
+    connection()
+  }, [checkAuth,connection]);
 
   useEffect(() => {
     get_all_group();

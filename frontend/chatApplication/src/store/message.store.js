@@ -53,7 +53,24 @@ export const messageStore=create((set,get)=>({
           console.log("Error filtering contacts:", error);
         }
     },
-      
+    getNewContact:()=>{
+        const socket=authStore.getState().socket;
+        if(!socket)return
+        socket.on("new_contact",(data)=>{
+            const {contacts}=get()
+const condition=contacts.some((item)=>item.phone==data.phone);
+if(!condition){
+          set({contacts:[...contacts,data]})
+}
+        })
+        
+      },
+      unSubScrContact:()=>{
+        // let's unSubScribe
+        const socket=authStore.getState().socket;
+        if(!socket)return
+        socket.off('new_contact')
+    },
     update_message_array_received:async(activeContact)=>{
         try {
             
@@ -114,13 +131,12 @@ export const messageStore=create((set,get)=>({
     subScribe:()=>{
         const socket=authStore.getState().socket;
         if(!socket)return
-       
+        //socket.off('newMessage'); // This is commented out!
         const{selectedUser}=get()
         socket.on('newMessage',(data)=>{
             if(data.sender==selectedUser||data.receiver==selectedUser){
-            const {messages}=get();
-            set({messages:[...messages,data]})
-            
+                const {messages}=get();
+                set({messages:[...messages,data]})
             }
         })
     },
@@ -158,6 +174,7 @@ export const messageStore=create((set,get)=>({
       });
     }
   });
+  socket
 }
 ,      
 clear_notification:(contact_id)=>{
@@ -166,13 +183,12 @@ clear_notification:(contact_id)=>{
             return{notify:updatedNotify}
         })
 },
-    unSubScribe:()=>{
-        // let's unSubScribe
-        const socket=authStore.getState().socket;
-        if(!socket)return
-        socket.off('newMessage')
-        socket.off("newNotification")
-    },
+unSubScribe:()=>{
+    const socket=authStore.getState().socket;
+    if(!socket)return
+    socket.off('newMessage') // Make sure this is present and not commented
+    socket.off("newNotification")
+},
     setSelectedUser:(selectedUserId)=>{
         
         set({selectedUser:selectedUserId})
@@ -198,13 +214,7 @@ clear_notification:(contact_id)=>{
             console.log(error)
         }
     },
-    receiverCalling:async()=>{
-        try {
-            
-        } catch (error) {
-            console.log(error)
-        }
-    },
+
   
  
 }))
