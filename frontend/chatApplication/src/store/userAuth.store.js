@@ -183,7 +183,7 @@ export const authStore=create((set,get)=>({
 deleteActiveUser: async(userIdObj) => {
   if (!userIdObj || !userIdObj.authUserId || !userIdObj.selectedId) {
     console.error('Invalid user object for deletion', userIdObj);
-    throw new Error('Invalid user data provided');
+   return
   }
   const {socket} = get();
   socket.emit('delete_active_user', userIdObj);
