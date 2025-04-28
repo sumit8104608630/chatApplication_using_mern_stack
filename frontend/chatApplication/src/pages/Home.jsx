@@ -262,7 +262,7 @@ const handleGroupClick=(groupInfo)=>{
     }
   }, [isMounted, activeUser, activeContact?._id, authUser?._id, locallyUpdate_toSeen]);
 
-  console.log(activeUser)
+  //console.log(activeUser)
 
   useEffect(() => {
     delete_authUserMatchId(authUser._id);    // First delete the current active user
