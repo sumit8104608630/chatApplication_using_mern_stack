@@ -132,6 +132,7 @@ if(!condition){
         const socket=authStore.getState().socket;
         if(!socket)return
         //socket.off('newMessage'); // This is commented out!
+        socket.off("deletedMessage")
         const{selectedUser}=get()
         socket.on('newMessage',(data)=>{
             if(data.sender==selectedUser||data.receiver==selectedUser){
@@ -139,6 +140,18 @@ if(!condition){
                 set({messages:[...messages,data]})
             }
         })
+         socket.on("deletedMessage",(data)=>{
+            const {messageId,deletedFor}=data;
+            const {messages}=get();
+
+            let updatedMessage=messages.map(message=>{
+                if(message.id==messageId){
+                    return {...message,deletedFor:deletedFor}
+                }
+                return message
+            })
+            set({messages:updatedMessage});
+         })
     },
    notifyMessage: () => {
   const socket = authStore.getState().socket;
@@ -188,6 +201,8 @@ unSubScribe:()=>{
     if(!socket)return
     socket.off('newMessage') // Make sure this is present and not commented
     socket.off("newNotification")
+    socket.off("deletedMessage")
+
 },
     setSelectedUser:(selectedUserId)=>{
         
@@ -214,6 +229,23 @@ unSubScribe:()=>{
             console.log(error)
         }
     },
+    deleteMessage:async(obj)=>{
+        try {
+            const response=await axiosInstance.put("/message/deleteMessage",obj);
+            if(response.status===200){
+                const {messages}=get();
+                let updatedMessage=messages.map(message=>{
+                    if (message.id === obj.messageId) {
+                    return {...message,deletedFor:obj.arrayOfId}
+                }
+                return message
+            });
+                set({messages:updatedMessage})
+            }
+        } catch (error) {
+          console.log(error)  
+        }
+    }
 
   
  

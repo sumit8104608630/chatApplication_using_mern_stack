@@ -101,9 +101,11 @@ const get_all_messages = asyncHandler(async(req, res) => {
         const message = await Message.aggregate([
             {   
                 $match: {
+                    deletedFor: { $ne: new mongoose.Types.ObjectId(req?.user?._id) },
                     $or: [
                         { sender: new mongoose.Types.ObjectId(id), receiver: new mongoose.Types.ObjectId(receiverId.id) },
                         { sender: new mongoose.Types.ObjectId(receiverId.id), receiver: new mongoose.Types.ObjectId(id) }
+                        
                     ]
                 }
                 
@@ -140,6 +142,7 @@ const get_all_messages = asyncHandler(async(req, res) => {
                 $project: {
                     id: { $toString: "$_id" },
                     sender: { $toString: "$senderInfo._id" },
+                    deletedFor:"$deletedFor",
                     text: "$message",
                     image:"$images",
                     video:"$video",
@@ -284,11 +287,51 @@ const Notification=asyncHandler(async(req,res)=>{
     }
 }) 
 
+// let's create the functionality of deleting message  
+
+const deleteMessage=asyncHandler(async(req,res)=>{
+    try {
+        /*
+        there will will be two possibility
+        1. delete from sender side 
+        2. delete from everyone means from both side
+        */ 
+        const {receiverId,messageId,arrayOfId}=req.body;
+        const receiver=getOnlineUserIds(receiverId)
+        if (!messageId || arrayOfId.length === 0) {
+            return res.status(404).json(new apiResponse(404, null, "Invalid message ID or empty array"));
+        }
+
+        
+
+        // let's update the Message 
+       const updatedMessage =await Message.findByIdAndUpdate(
+
+        messageId,
+        { $set: { deletedFor: arrayOfId } }, // Update
+        { new: true }   
+                             
+    )
+        if(receiver){
+          io.to(receiver).emit("deletedMessage",{
+            messageId,
+            deletedFor:arrayOfId
+          })
+        }
+
+    return res.status(200).json(new apiResponse(200, updatedMessage, "Message updated"));
+
+    } catch (error) {
+      console.log(error)  
+    }
+})
+
 export {
     store_messages,
     get_all_messages,
     update_message_status,
     update_message_array_received,
     update_message_array_seen,
-    Notification
+    Notification,
+    deleteMessage
 }

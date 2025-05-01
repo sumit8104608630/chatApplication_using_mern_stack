@@ -72,7 +72,7 @@ io.on("connection", (socket) => {
 
 
 
-
+ 
 
 
     // ✅ Handle group joining (if groupIds provided)
@@ -149,16 +149,7 @@ socket.on("call-user", ({ to, from,offer }) => {
     }
   })
   
-
-
-
-
     // ✅ Clear a specific user's active chats
-   
-
-    
-   
-
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.id}`);
 

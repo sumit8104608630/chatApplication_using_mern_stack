@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { type } from "os";
 
 const MessageSchema=mongoose.Schema({
     message:{
@@ -26,6 +27,12 @@ const MessageSchema=mongoose.Schema({
         ref:"User",
         required:true
     },
+    deletedFor:[
+        {
+            type: mongoose.Types.ObjectId,
+            ref: "User"
+        }
+    ],
     status:{
         type:String,
         enum: ["sent", "received", "seen"],

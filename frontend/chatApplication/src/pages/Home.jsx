@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { 
   Search, MoreVertical, Phone, Video, Send, PlusCircle, Paperclip, 
   Smile, ArrowLeft, Menu, Image, File, X, Clock, Check, 
-  UserCircleIcon, CheckCheck, UserCircle, Download,VideoIcon
+  Trash2, CheckCheck, Forward, Download,VideoIcon
 } from 'lucide-react';
 import { messageStore } from '../store/message.store.js';
 import { authStore } from '../store/userAuth.store.js';
@@ -15,6 +15,7 @@ import { Loader } from 'lucide-react';
 import VoiceCall from '../components/VoiceCall.jsx';
 import CallerInterface from '../components/Calling.jsx';
 import { usePeer } from '../components/Peer.jsx';
+import DropDownMenu from '../components/DropDownMenu.jsx';
 
 const ChatHomePage = () => {
   const{get_all_groupMessage,setSelectedGroup,groupSubScribe,selectedGroup,unGroupSubScribe}=groupMessageStore();
@@ -32,6 +33,7 @@ const ChatHomePage = () => {
   const [searchInputValue,setValue]=useState({
     inputValue:"",
   })
+  const [ShowMenu,setShowMenu]=useState(null)
   const [incomingCall,setIncoming]=useState(false)
   const { peer, createOffer, create_answer, setRemoteAnswer, sendStream, setActiveCallTarget, remoteStream } = usePeer();
     const [message, setMessage] = useState({
@@ -707,6 +709,38 @@ useEffect(() => {
 
 
 
+
+const [activeMenuId, setActiveMenuId] = useState(null);
+
+
+const handleDeleteMessage = (messageId) => {
+  setActiveMenuId(null);
+  console.log("Message deleted:", messageId);
+};
+
+const handleForwardMessage = (message) => {
+  console.log("Forward message:", message);
+  setActiveMenuId(null);
+  // Implementation for forwarding would go here
+};
+
+const toggleMenu = (messageId) => {
+  if (activeMenuId === messageId) {
+    setActiveMenuId(null);
+  } else {
+    setActiveMenuId(messageId);
+  }
+};
+
+
+const handleOutsideClick = () => {
+  if (activeMenuId !== null) {
+    setActiveMenuId(null);
+  }
+};
+
+console.log(messages)
+
   return (
     <div  className="h-screen bg-[#1a1e23]  flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
@@ -986,157 +1020,231 @@ useEffect(() => {
             
             {/* Messages */}
             {messageLoading ? (
-  Array.from({ length: 6 }).map((_, idx) => (
-    <div
-      key={idx}
-      className={`flex ${idx % 2 === 0 ? 'justify-start' : 'justify-end'} animate-pulse flex-1 p-2 sm:p-4 overflow-y-auto  bg-[#1a1e23]`}
-    >
-      <div className="flex max-w-xs md:max-w-md">
-        {/* Avatar (only on left side) */}
-        {idx % 2 === 0 && (
-          <div className="w-8 h-8 bg-gray-700 rounded-full mr-2 self-end" />
-        )}
-        <div
-          className={`bg-gray-700 p-3 text-white ${
-            idx % 2 === 0
-              ? 'rounded-r-lg rounded-tl-lg'
-              : 'rounded-l-lg rounded-tr-lg'
-          } w-40`}
-        >
-          <div className="h-3 bg-gray-600 rounded mb-2"></div>
-          <div className="h-3 bg-gray-600 rounded w-3/4"></div>
-        </div>
-      </div>
-    </div>
-  ))
-) :(
-            <div 
-            ref={scrollRef}
-            style={{
-              scrollbarWidth: "none",      // Firefox
-              msOverflowStyle: "none",     // IE and Edge
-              overflowY: "auto",
-            }} className="flex-1 p-2 sm:p-4 overflow-y-auto  bg-[#1a1e23]">
-              <div  className="space-y-4">
-                {messages?.map((message) => (
-                  <div 
-                    key={message.id}
-                    className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className="flex max-w-xs md:max-w-md">
-                      {!message.isOwn && (
-                        <img
-                          src={contacts.find(c => c.userId._id === message.sender)?.save_contact 
-                            ? contacts.find(c => c.userId._id === message.sender)?.userId.profilePhoto 
-                            : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"}
-                          alt="avatar"
-                          className="w-8 h-8 rounded-full object-cover mr-2 self-end"
-                        />
-                      )}
-                      <div>
-                        <div className={`${message.isOwn ? 'bg-teal-500 p-3 rounded-l-lg rounded-tr-lg text-white' : 'bg-gray-800 p-3 rounded-r-lg rounded-tl-lg text-white'}`}>
-                          <p className="text-sm">{message.text}</p>
-                          {message?.image && message.image.match(/\.(jpeg|jpg|gif|png)$/) && (
-                            <div className="relative mt-2">
-                              <img 
-                                onClick={() => setFullViewImage(message?.image)}
-                                src={message.image} 
-                                alt="Shared image" 
-                                className="rounded max-w-56 h-auto cursor-pointer" 
-                              />
-                              {!message.isOwn &&
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownloadFile(message.image, `image-${Date.now()}.jpg`);
-                                }}
-                                className="absolute bottom-2 right-2 bg-black bg-opacity-50 p-1 rounded-full text-white hover:bg-opacity-70"
-                                title="Download image"
-                              >
-                                <Download className="h-4 w-4" />
-                              </button>}
-                            </div>
-                          )}
-                          {
-                            message?.video && message.video.match(/\.(mp4|webm|ogg)$/)&& (
-                              <video src={message.video} controls className="w-40 rounded" />
-                            )
-                          }
-
-                          {fullViewImage && (
-                            <div 
-                              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-                              onClick={() => setFullViewImage(null)}
-                            >
-                              <div className="max-w-4xl max-h-screen p-4 relative">
-                                <img 
-                                  src={fullViewImage} 
-                                  alt="Full view" 
-                                  className="max-w-full max-h-[90vh] object-contain" 
-                                />
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownloadFile(fullViewImage);
-                                  }}
-                                  className="absolute bottom-6 right-6 bg-black bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
-                                  title="Download image"
-                                >
-                                  <Download className="h-5 w-5" />
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                     
-
-                          {message.file && !message.file.match(/\.(jpeg|jpg|gif|png)$/) && (
-                            <div className="mt-2 bg-gray-700 p-2 w-56 rounded flex items-center justify-between group">
-                              <div className="flex items-center flex-1 overflow-hidden">
-                                <File className="h-4 w-4 mr-2 flex-shrink-0" />
-                               <a target='_blank' className='cursor-pointer' href={message.file}><span className="text-xs truncate">{message.file}</span></a>
-                              </div>
-                              <button 
-                                onClick={() => handleDownloadFile(message.file, message.file)}
-                                className="text-white ml-2 flex-shrink-0 p-1 hover:bg-gray-600 rounded"
-                                title="Download file"
-                              >
-                                <Download className="h-4 w-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>
-                          {message?.isOwn &&
-                            <span className='mr-1 text-center'>
-                              {renderMessageStatus(message?.status, message?.isOwn)}
-                            </span>
-                          }
-                          {message.time}
-
-              
-                        </p>
-                      </div>
-                    </div>
-                    
-                  </div>
-                ))}
-                            {activeUser?.some(
-        (item) =>
-          (item.authUserId === activeContact?._id && item.selectedId === authUser?._id) &&
-          !(item.authUserId === authUser?._id && item.selectedId === activeContact?._id)
-      )&&messageSendingLoading && (
-    <div className={`flex justify-end  items-center py-2`}>
-      <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-lg">
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "600ms" }}></div>
-      </div>
-    </div>
-  )}
+        Array.from({ length: 6 }).map((_, idx) => (
+          <div
+            key={idx}
+            className={`flex ${idx % 2 === 0 ? 'justify-start' : 'justify-end'} animate-pulse flex-1 p-2 sm:p-4 overflow-y-auto  bg-[#1a1e23]`}
+          >
+            <div className="flex max-w-xs md:max-w-md">
+              {/* Avatar (only on left side) */}
+              {idx % 2 === 0 && (
+                <div className="w-8 h-8 bg-gray-700 rounded-full mr-2 self-end" />
+              )}
+              <div
+                className={`bg-gray-700 p-3 text-white ${
+                  idx % 2 === 0
+                    ? 'rounded-r-lg rounded-tl-lg'
+                    : 'rounded-l-lg rounded-tr-lg'
+                } w-40`}
+              >
+                <div className="h-3 bg-gray-600 rounded mb-2"></div>
+                <div className="h-3 bg-gray-600 rounded w-3/4"></div>
               </div>
             </div>
-     )
-}
+          </div>
+        ))
+      ) : (
+        <div 
+          ref={scrollRef}
+          style={{
+            scrollbarWidth: "none",      // Firefox
+            msOverflowStyle: "none",     // IE and Edge
+            overflowY: "auto",
+          }} className="flex-1 p-2 sm:p-4 overflow-y-auto  bg-[#1a1e23]">
+          <div className="space-y-4">
+            {messages?.map((message) => (
+              <div key={message.id}>
+              {!message?.deletedFor?.includes(authUser._id)&&<div 
+                key={message.id}
+                className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}
+              >
+                <div >
+                 { ShowMenu && ShowMenu===message.id &&<div className=' flex justify-end items-end'>
+                 {message.isOwn&&<button 
+                             onMouseOver={()=>setShowMenu(message.id)} onMouseLeave={()=>setShowMenu(null)}
+
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleMenu(message.id);
+                            }} 
+                            className="text-white flex   hover:bg-opacity-50 p-2 "
+                          >
+                            <MoreVertical size={16} />
+                          </button>}
+                          </div>}
+                          {activeMenuId === message.id && message.isOwn && (
+                            <DropDownMenu 
+                            message={message} 
+                            showMenu={ShowMenu}
+                            setShowMenu={setShowMenu}
+                            setActiveMenuId={setActiveMenuId}
+                            handleForwardMessage={handleForwardMessage}
+                            handleDeleteMessage={handleDeleteMessage}
+                            activeContactId={activeContact._id}
+                            />
+                            
+                          )}
+                </div>
+
+
+                
+                <div className="flex max-w-xs md:max-w-md relative group">
+                  {!message.isOwn && (
+                    <img
+                      src={contacts.find(c => c.userId._id === message.sender)?.save_contact 
+                        ? contacts.find(c => c.userId._id === message.sender)?.userId.profilePhoto 
+                        : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"}
+                      alt="avatar"
+                      className="w-8 h-8 rounded-full object-cover mr-2 self-end"
+                    />
+                  )}
+                  <div className="relative">
+                    
+                  
+
+
+                  <div 
+                                    onMouseOver={()=>setShowMenu(message.id)} onMouseLeave={()=>setShowMenu(null)}
+
+                     className={`${message.isOwn ? 'bg-teal-500 p-3 rounded-l-lg rounded-tr-lg text-white' : 'bg-gray-800 p-3 rounded-r-lg rounded-tl-lg text-white'} relative`}>
+                      <div className="flex justify-between">
+                        <p className="text-sm">{message.text}</p>
+                        
+                        {/* Hover action button - Only visible on hover */}
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                         
+                          
+                          {/* Dropdown menu - Only visible when clicked */}
+                       
+                        </div>
+                      </div>
+                      
+                      {message?.image && message.image.match(/\.(jpeg|jpg|gif|png)$/) && (
+                        <div className="relative mt-2">
+                          <img 
+                            onClick={() => setFullViewImage(message?.image)}
+                            src={message.image} 
+                            alt="Shared image" 
+                            className="rounded max-w-56 h-auto cursor-pointer" 
+                          />
+                          {!message.isOwn &&
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadFile(message.image, `image-${Date.now()}.jpg`);
+                            }}
+                            className="absolute bottom-2 right-2 bg-black bg-opacity-50 p-1 rounded-full text-white hover:bg-opacity-70"
+                            title="Download image"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>}
+                        </div>
+                      )}
+                      {
+                        message?.video && message.video.match(/\.(mp4|webm|ogg)$/)&& (
+                          <video src={message.video} controls className="w-40 rounded" />
+                        )
+                      }
+
+                      {fullViewImage && (
+                        <div 
+                          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                          onClick={() => setFullViewImage(null)}
+                        >
+                          <div className="max-w-4xl max-h-screen p-4 relative">
+                            <img 
+                              src={fullViewImage} 
+                              alt="Full view" 
+                              className="max-w-full max-h-[90vh] object-contain" 
+                            />
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadFile(fullViewImage);
+                              }}
+                              className="absolute bottom-6 right-6 bg-black bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
+                              title="Download image"
+                            >
+                              <Download className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                 
+                      {message.file && !message.file.match(/\.(jpeg|jpg|gif|png)$/) && (
+                        <div className="mt-2 bg-gray-700 p-2 w-56 rounded flex items-center justify-between group">
+                          <div className="flex items-center flex-1 overflow-hidden">
+                            <File className="h-4 w-4 mr-2 flex-shrink-0" />
+                           <a target='_blank' className='cursor-pointer' href={message.file}><span className="text-xs truncate">{message.file}</span></a>
+                          </div>
+                          <button 
+                            onClick={() => handleDownloadFile(message.file, message.file)}
+                            className="text-white ml-2 flex-shrink-0 p-1 hover:bg-gray-600 rounded"
+                            title="Download file"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                  </div>
+                    <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>
+                      {message?.isOwn &&
+                        <span className='mr-1 text-center'>
+                          {renderMessageStatus(message?.status, message?.isOwn)}
+                        </span>
+                      }
+                      {message.time}
+                    </p>
+                  </div>
+                  
+                
+                </div>
+                { !message.isOwn&&<div >
+                 { ShowMenu && ShowMenu===message.id && !message.isOwn &&<div className={ `flex justify-start items-end`}>
+                 {!message.isOwn&&<button 
+                             onMouseOver={()=>setShowMenu(message.id)} onMouseLeave={()=>setShowMenu(null)}
+
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleMenu(message.id);
+                            }} 
+                            className="text-white flex   hover:bg-opacity-50 p-2 "
+                          >
+                            <MoreVertical size={16} />
+                          </button>}
+                          </div>}
+                          {activeMenuId === message.id &&  (
+                            <DropDownMenu 
+                            message={message} 
+                            showMenu={ShowMenu}
+                            setShowMenu={setShowMenu}
+                            setActiveMenuId={setActiveMenuId}
+                            handleForwardMessage={handleForwardMessage}
+                            handleDeleteMessage={handleDeleteMessage}
+                            activeContactId={activeContact._id}
+                            />
+                            
+                          )}
+                </div>}
+              </div>}
+              </div>
+            ))}
+            {activeUser?.some(
+              (item) =>
+                (item.authUserId === activeContact?._id && item.selectedId === authUser?._id) &&
+                !(item.authUserId === authUser?._id && item.selectedId === activeContact?._id)
+            ) && messageSendingLoading && (
+              <div className={`flex justify-end items-center py-2`}>
+                <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-lg">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "600ms" }}></div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
             {/* Message Input Area */}
             <div className="p-2 sm:p-4  bottom-0 bg-[#1a1e23] border-t border-gray-800">
               {/* File Preview Area - only shown when a file is selected */}
