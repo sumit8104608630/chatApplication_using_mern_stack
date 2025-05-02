@@ -820,7 +820,7 @@ console.log(messages)
                 <div className="relative">
                   {contact.save_contact ?
                     <img
-                      src={contact.userId.profilePhoto}
+                      src={contact?.userId?.profilePhoto}
                       alt={contact.userId.name}
                       className="w-12 h-12 rounded-full object-cover"
                     /> :
