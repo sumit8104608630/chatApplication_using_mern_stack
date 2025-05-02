@@ -180,7 +180,7 @@ return ()=>{
   const getContactMessageStatus = (contact) => {
     // Find messages related to this contact
     const contactMessages = messages.filter(
-      msg => msg.sender === contact.userId._id || msg.receiver === contact.userId._id
+      msg => msg.sender === contact.userId?._id || msg.receiver === contact.userId?._id
     );
     
     if (contactMessages.length === 0) return null;
@@ -460,7 +460,7 @@ return()=>{
     //console.log(contact)
     // const messageStatus = getContactMessageStatus(contact);
     // if (!messageStatus) return null;
-   let notification= notify?.find(item=>item?.senderId==contact.userId._id)
+   let notification= notify?.find(item=>item?.senderId==contact.userId?._id)
     if(!notification?.unseenCount==0){
    return <span className="bg-teal-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
           {notification?.unseenCount }
@@ -814,7 +814,7 @@ console.log(messages)
             <div 
               key={contact._id}
               className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact === contact._id ? 'bg-gray-800' : ''}`}
-              onClick={() => handleContactClick(contact.userId)}
+              onClick={() => handleContactClick(contact?.userId)}
             >
               <div className="flex items-center">
                 <div className="relative">
@@ -830,24 +830,24 @@ console.log(messages)
                       className="w-12 h-12 rounded-full object-cover"
                     />
                   }
-                  {get_online_user.includes(contact.userId._id) && (
+                  {get_online_user.includes(contact?.userId?._id) && (
                     <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
                   )}
                 </div>
                 <div className="ml-3 flex-1">
                   <div className="flex justify-between items-center">
-                    {contact.save_contact ?
+                    {contact?.save_contact ?
                       <h3 className="text-white font-medium">{contact.name}</h3> :
                       <h3 className="text-white font-medium">{contact.phone}</h3>
                     }
-                    {get_online_user.includes(contact.userId._id) ? 
+                    {get_online_user.includes(contact?.userId?._id) ? 
                       <span className="text-xs text-green-500">Online</span> :
-                      <span className="text-xs text-gray-400">{formatLastSeen(contact.userId.lastSeen)}</span>
+                      <span className="text-xs text-gray-400">{formatLastSeen(contact?.userId?.lastSeen)}</span>
                     }
                   </div>
                   <div className="flex justify-between items-center mt-1">
                     <p className={`text-sm truncate max-w-xs ${messageStatus?.isUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
-                      {messageStatus?.latestMessage || contact.userId.status || "Hey there! I'm using ChatApp."}
+                      {messageStatus?.latestMessage || contact?.userId?.status || "Hey there! I'm using ChatApp."}
                     </p>
                     {renderNotificationIndicator(contact)}
                   </div>
