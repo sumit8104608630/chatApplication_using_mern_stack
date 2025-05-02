@@ -98,7 +98,7 @@ export default function DropDownMenu({
           onMouseOver={() => setShowDeleteOptions(true)}
             on onMouseLeave={() => {setShowDeleteOptions(false)
             }}
-          className="absolute right-full top-0 ml-1 w-44 bg-gray-800 rounded-md shadow-lg z-20">
+          className={`absolute ${message.isOwn?"right-full ml-1":"left-full mr-1"} top-0  w-44 bg-gray-800 rounded-md shadow-lg z-20`}>
             <button 
               onClick={() => {
                 handleDeleteForMe(message.id,authUser._id,activeContactId);
@@ -109,7 +109,7 @@ export default function DropDownMenu({
               <UserX size={14} className="mr-2" />
               Delete for me
             </button>
-            <button 
+         {!message.isOwn|| message.status != "seen"&&  <button 
               onClick={() => {
                 handleDeleteForEveryone(message.id,authUser._id,activeContactId);
                 setShowDeleteOptions(false);
@@ -118,7 +118,7 @@ export default function DropDownMenu({
             >
               <Users size={14} className="mr-2" />
               Delete for everyone
-            </button>
+            </button>}
           </div>
         )}
       </div>

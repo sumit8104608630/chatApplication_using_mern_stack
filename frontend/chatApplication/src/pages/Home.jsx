@@ -1170,7 +1170,7 @@ console.log(messages)
                           </div>
                         </div>
                       )}
-                 
+
                       {message.file && !message.file.match(/\.(jpeg|jpg|gif|png)$/) && (
                         <div className="mt-2 bg-gray-700 p-2 w-56 rounded flex items-center justify-between group">
                           <div className="flex items-center flex-1 overflow-hidden">
