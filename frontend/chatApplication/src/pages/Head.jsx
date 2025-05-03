@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { Link, useLocation,NavLink, useNavigate } from "react-router-dom";
 import { Menu, X, MessageSquare, Bell, Search, Users, Settings, User ,Group} from "lucide-react";
 import { authStore } from "../store/userAuth.store";
-import { axiosInstance } from "../lib/axios";
 const Head = () => {
 
-  const {authUser,checkAuth,isCheckingAuth,logout,deleteActiveUser} = authStore();
+  const {authUser,logout,deleteActiveUser} = authStore();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);

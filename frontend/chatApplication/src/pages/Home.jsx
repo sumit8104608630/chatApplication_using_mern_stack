@@ -718,11 +718,11 @@ const toggleMenu = (messageId) => {
 };
 
 
-const handleOutsideClick = () => {
-  if (activeMenuId !== null) {
-    setActiveMenuId(null);
-  }
-};
+// const handleOutsideClick = () => {
+//   if (activeMenuId !== null) {
+//     setActiveMenuId(null);
+//   }
+// };
 
 
   return (

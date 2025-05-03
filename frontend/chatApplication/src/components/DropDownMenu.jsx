@@ -52,7 +52,7 @@ export default function DropDownMenu({
   return (
     <div 
       onMouseOver={() => setShowMenu(message.id)} 
-      onMouseLeave={(e) => {
+      onMouseLeave={() => {
         // Check if the mouse is not over delete options before hiding menu
         if (!showDeleteOptions) {
           setActiveMenuId(null);

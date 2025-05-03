@@ -18,7 +18,7 @@ import ForgotPassword from './pages/ForgotPassword.jsx';
 
 const App = () => {
   const { get_all_group } = groupStore();
-  const { authUser, checkAuth, isCheckingAuth, isUpdatingProfile, get_online_user,connection ,getActiveUser} = authStore();
+  const { authUser, checkAuth, isCheckingAuth,connection } = authStore();
 
   useEffect(() => {
     checkAuth(); 

@@ -1,7 +1,5 @@
 import {create} from "zustand"
 import { axiosInstance } from "../lib/axios"
-import {io} from "socket.io-client"
-import { authStore } from "./userAuth.store";
 
 const API_URL = import.meta.env.VITE_DATA_BASE_LINK; // Your backend URL
 

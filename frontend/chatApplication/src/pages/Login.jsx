@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Phone, Lock } from "lucide-react";
-import { axiosInstance } from "../lib/axios";
 import { authStore } from "../store/userAuth.store";
 
 const Login = () => {
-    const {authUser,checkAuth,isCheckingAuth,isLoginIng,login,loginError} = authStore( );
+    const {isLoginIng,login,loginError} = authStore( );
   
-  const navigate=useNavigate()
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     phoneNumber: "",
