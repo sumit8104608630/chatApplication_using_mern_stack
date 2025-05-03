@@ -14,6 +14,7 @@ import Error from './pages/Error.jsx';
 import AddContactPage from './pages/AddContactPage.jsx';
 import { groupStore } from './store/group.store.js';
 import { PeerProvider } from './components/Peer.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
 
 const App = () => {
   const { get_all_group } = groupStore();
@@ -46,6 +47,7 @@ const App = () => {
           <Route path="profile" element={authUser ? <Profile /> : <Navigate to="/login" />} />
           <Route path="contacts" element={authUser ? <AddContactPage /> : <Navigate to="/login" />} />
           <Route path="createGroup" element={authUser ? <GroupForm /> : <Navigate to="/login" />} />
+          <Route path="forgotPassword" element={!authUser ? <ForgotPassword /> : <Navigate to="/" />} />
           <Route path="*" element={<Error />} />
         </Route>
       </Routes>

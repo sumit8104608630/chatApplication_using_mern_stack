@@ -5,7 +5,7 @@ import { axiosInstance } from "../lib/axios";
 import { authStore } from "../store/userAuth.store";
 
 const Login = () => {
-    const {authUser,checkAuth,isCheckingAuth,isLoginIng,login} = authStore( );
+    const {authUser,checkAuth,isCheckingAuth,isLoginIng,login,loginError} = authStore( );
   
   const navigate=useNavigate()
   const [showPassword, setShowPassword] = useState(false);
@@ -84,7 +84,7 @@ const Login = () => {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Password
               </label>
-              <div className="relative">
+              <div className="relative mb-1">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-gray-500" />
                 </div>
@@ -107,8 +107,9 @@ const Login = () => {
                   )}
                 </button>
               </div>
-            </div>
+              <div>{loginError&&<div className="flex justify-between"><span className="text-red-500 text-sm">{loginError}</span><span className="text-red-500 text-sm mt-1"><Link to={"/forgotPassword"}>Forgot Password</Link></span></div>}</div>
 
+            </div>
             <button 
               type="submit" 
               className="w-full bg-teal-500 hover:bg-teal-600 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 flex items-center justify-center" 

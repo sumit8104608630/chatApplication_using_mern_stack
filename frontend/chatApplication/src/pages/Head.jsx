@@ -29,12 +29,17 @@ const Head = () => {
     window.addEventListener("scroll", handleScroll);
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      setProfileMenuOpen(false)
     };
+    
   }, []);
 
   const handleLogout=async()=>{
     deleteActiveUser(authUser?._id)
     logout(navigate)
+   setProfileMenuOpen(false)
+   setIsOpen(false)
+
   }
 
   // Navigation links
@@ -50,10 +55,10 @@ const Head = () => {
   }`}
 >
   <div className="flex w-full px-10">
-    <div className="flex items-center w-full justify-between h-16">
+    <div className="flex items-center  w-full justify-between h-16">
       {/* Logo and Brand */}
       <div className="flex-shrink-0 flex items-center">
-        <Link to="/" className="flex items-center">
+        <Link onClick={()=>setIsOpen(false)} to="/" className="flex items-center">
           <div className="w-8 h-8 rounded-md bg-[#0e7970] flex items-center justify-center mr-2">
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
@@ -70,7 +75,7 @@ const Head = () => {
               />
             </svg>
           </div>
-          <span className="font-bold text-xl">ChatApp</span>
+          <span className="font-bold text-xl">Charcha</span>
         </Link>
       </div>
 
@@ -132,13 +137,13 @@ const Head = () => {
               <div 
                 className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-[#252a30] ring-1 ring-black ring-opacity-5 focus:outline-none"
               >
-                <Link to="/profile" className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#2d3239]">
+                <Link onClick={()=>setProfileMenuOpen(false)} to="/profile" className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#2d3239]">
                   Your Profile
                 </Link>
-                <Link to="/account" className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#2d3239]">
+                <Link onClick={()=>setProfileMenuOpen(false)} to="/account" className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#2d3239]">
                   Account Settings
                 </Link>
-                <button onClick={handleLogout} className="w-full text-left block px-4 py-2 text-sm text-gray-300 hover:bg-[#2d3239]">
+                <button  onClick={handleLogout} className="w-full text-left block px-4 py-2 text-sm text-gray-300 hover:bg-[#2d3239]">
                   Sign out
                 </button>
               </div>
@@ -179,6 +184,7 @@ const Head = () => {
 
         {navLinks.map((link) => (
           <Link
+          onClick={()=>setIsOpen(false)}
             key={link.name}
             to={link.path}
             className={`px-3 py-2 rounded-md text-base font-medium flex items-center ${
@@ -210,10 +216,10 @@ const Head = () => {
           </div>
         </div>
         <div className="mt-3 px-2 space-y-1">
-          <Link to="/profile" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-[#252a30] hover:text-white">
+          <Link onClick={()=>setIsOpen(false)} to="/profile" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-[#252a30] hover:text-white">
             Your Profile
           </Link>
-          <Link to="/account" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-[#252a30] hover:text-white">
+          <Link onClick={()=>setIsOpen(false)} to="/account" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-[#252a30] hover:text-white">
             Account Settings
           </Link>
           <button onClick={handleLogout} className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-[#252a30] hover:text-white">

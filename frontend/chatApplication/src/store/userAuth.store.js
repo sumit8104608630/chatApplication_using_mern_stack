@@ -7,6 +7,7 @@ const API_URL = import.meta.env.VITE_DATA_BASE_LINK; // Your backend URL
 
 export const authStore=create((set,get)=>({
     activeUser:[],
+    loginError:null,
     authUser:null,
     get_online_user:[],
     isSigningUp:false,
@@ -43,7 +44,7 @@ export const authStore=create((set,get)=>({
         }
         set({ isLoginIng: false }) // Use consistent property name
       } catch (error) {
-        console.log(error)
+        set({loginError:error.response.data.message})
         if (error) {
           set({ isLoginIng: false }); // Fix property name
         }

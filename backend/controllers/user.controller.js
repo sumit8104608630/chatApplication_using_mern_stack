@@ -54,7 +54,7 @@ const user_login=asyncHandler(async(req,res)=>{
         }
         const user=await User.findOne({phoneNumber});
         if(!user){
-            return res.status(400).json(new apiResponse(400,{},"Invalid phone number or password"));
+            return res.status(400).json(new apiResponse(400,{},"Invalid phone number"));
         }
        const token=await User.matchPasswordGenerateToken(phoneNumber,password)
        if(token.success){
