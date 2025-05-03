@@ -9,6 +9,7 @@ export const groupStore=create((set,get)=>({
     isCreatingGroup:false,
     isGroupLoading:false,
     filterGroupArray:[],
+    groupCache:{},
         groups:null,
     createGroup:async(formDta)=>{
         try {
@@ -26,7 +27,6 @@ export const groupStore=create((set,get)=>({
     },
     get_all_group:async()=>{
         try {
-            const connection=authStore.getState().connection;
             set({isGroupLoading:true})
             const response=await axiosInstance.get(`/group/get_all_group`);
            // console.log(response)
@@ -42,9 +42,19 @@ export const groupStore=create((set,get)=>({
     },
     filter_groups: async (query,activeTab) => {
         set({filterGroupLoading:true})
+        const {groupCache}=get()
         const { groups } = get();
         try {
           if (activeTab==="groups") {
+            let result=groupCache[query];
+            if(result){
+              set({ 
+                filterGroupArray: result, 
+            });
+          
+          set({filterGroupLoading:false})
+            }
+            else{
             const response = await axiosInstance.get(`/group/filterGroup?searchQuery=${query}`);
             if (response.status === 200) {
               const matchedUser = response.data.data;
@@ -52,12 +62,17 @@ export const groupStore=create((set,get)=>({
             return matchedUser.some(user=>group.name === user.name)
               });
               
-              set({ 
+              set((state)=>(
+                {groupCache:{
+                  ...state.groupCache,[query]:filterGroup
+                },
+                
                   filterGroupArray: filterGroup, 
-              });
+              }));
             }
             set({filterGroupLoading:false})
           }
+        }
         } catch (error) {
             set({filterGroupLoading:false})
 
