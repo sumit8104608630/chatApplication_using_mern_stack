@@ -7,6 +7,7 @@ import { Socket } from "socket.io-client"
 export const messageStore=create((set,get)=>({
     contacts:[],
     messages:[],
+    contactCache:{},
     filterLoading:false,
     filterArray:[],
     notify:[],
@@ -30,22 +31,35 @@ export const messageStore=create((set,get)=>({
     //let's create filter function
     filter_contacts: async (query,activeTab) => {
         set({filterLoading:true})
+        const {contactCache}=get()
         const { contacts } = get();
         try {
           if (activeTab==="contacts") {
+            const result = contactCache[query];
+            if (result) {
+              set({ filterArray: result });
+              set({filterLoading:false})
+
+            }
+            else{
             const response = await axiosInstance.get(`/user/searchUser?searchQuery=${query}`);
             if (response.status === 200) {
+                console.log("yes")
               const matchedUser = response.data.data;
-              
               const filterContact = contacts.filter(contact => {
             return matchedUser.some(user=>contact.userId && contact.userId._id && contact.userId._id === user._id)
               });
               
-              set({ 
-                  filterArray: filterContact, 
-              });
+              set(state => ({ 
+             contactCache:{
+                ...state.contactCache,[query]:filterContact
+             },
+                filterArray: filterContact,
+                filterLoading: false
+            }));
             }
             set({filterLoading:false})
+        }
           }
         } catch (error) {
             set({filterLoading:false})

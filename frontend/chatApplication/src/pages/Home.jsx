@@ -930,7 +930,6 @@ const handleOutsideClick = () => {
 {calling && (
         <CallerInterface 
         callOn={callOn}
-
           callData={calling}
           endCall={endCall}
           localStream={myStream}
