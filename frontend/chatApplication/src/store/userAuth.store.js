@@ -66,6 +66,7 @@ export const authStore=create((set,get)=>({
     },
     addContact:async(formdata,navigate)=>{
         try {
+
           set({addContactLoading:true})
             const response=await axiosInstance.post(`/user/contact`,formdata)
             if(response.data.statusCode===201){

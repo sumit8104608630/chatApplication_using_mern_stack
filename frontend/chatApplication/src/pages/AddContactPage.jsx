@@ -6,7 +6,7 @@ import { axiosInstance } from '../lib/axios';
 import { debounce } from '../utils/debounce';
 
 const AddContactPage = () => {
-    const {addContact,isAddContact}=authStore();
+    const {addContact,addContactLoading}=authStore();
     const[userAvailable,setUserAvailable]=useState()
     const [error,setBooleanError]=useState(false)
     const navigate=useNavigate()
@@ -24,12 +24,10 @@ const AddContactPage = () => {
   }
 const checkUser=async(phoneNumber)=>{
     try {
-      console.log(phoneNumber)
         const response=await axiosInstance.post(`/user/check`,{phoneNumber:phoneNumber});
-        console.log(response)
         setUserAvailable(response.data.message)
     } catch (error) {
-        if(error.response.status==404){
+        if(error?.response.status==404){
           setBooleanError(true)
            return setUserAvailable("user Does not exist")
         }
@@ -55,7 +53,7 @@ useEffect(() => {
   if (contactData.phoneNumber) {
     debouncedCheckUser(contactData.phoneNumber);
   }
-}, [contactData.phoneNumber]); 
+}, [contactData.phoneNumber,debouncedCheckUser]); 
 
   return (
     <div className="h-screen bg-[#1a1e23] grid lg:grid-cols-2">
@@ -83,7 +81,7 @@ useEffect(() => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={(e)=>handleSubmit(e)} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Name
@@ -140,9 +138,9 @@ useEffect(() => {
               <button 
                 type="submit" 
                 className="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 flex items-center justify-center" 
-                disabled={isAddContact}
+                disabled={addContactLoading}
               >
-                {isAddContact ? (
+                {addContactLoading ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                     Saving...

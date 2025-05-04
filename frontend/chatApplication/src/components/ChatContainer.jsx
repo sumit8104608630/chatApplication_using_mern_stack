@@ -54,7 +54,7 @@ const ChatContainer = ({
   handleDownloadFile
 }) => {
   return (
-    <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
+    <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 z-0 flex-col h-full`}>
       {activeContact ? (
         <>
           {/* Chat Header */}

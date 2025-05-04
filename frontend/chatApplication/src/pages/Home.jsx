@@ -718,15 +718,15 @@ const toggleMenu = (messageId) => {
 };
 
 
-// const handleOutsideClick = () => {
-//   if (activeMenuId !== null) {
-//     setActiveMenuId(null);
-//   }
-// };
+const handleOutsideClick = () => {
+  if (activeMenuId !== null) {
+    setActiveMenuId(null);
+  }
+};
 
 
   return (
-    <div  className="h-screen bg-[#1a1e23]  flex flex-col md:flex-row">
+    <div  onClick={handleOutsideClick} className="h-screen bg-[#1a1e23] z-0 flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
       <div className={`${showContactsOnMobile ? 'flex' : 'hidden'} md:flex md:w-80 border-r border-gray-800 flex-col h-full md:h-screen`}>
   {/* Header */}
