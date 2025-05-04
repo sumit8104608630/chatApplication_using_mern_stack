@@ -76,7 +76,7 @@ return ()=>{
     let message_obj = {
       receiver:contactId,
       message:message.text,
-      status:"received",
+      status:"sent",
       sender:authUser._id,
       file:message.file,
       images:message.image,

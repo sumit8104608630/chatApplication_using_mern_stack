@@ -372,7 +372,6 @@ const forward_message=asyncHandler(async(req,res)=>{
         if(activeContactId){
 
             if(activeContactId===message.receiver.toString()){
-                console.log("yes",message.receiver)
 
                 let senderSocketId=getOnlineUserIds(message.sender);
                 if(senderSocketId){
