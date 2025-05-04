@@ -19,10 +19,10 @@ export default function DropDownMenu({
   const [selectedContacts, setSelectedContacts] = useState([]);
   const deleteOptionsRef = useRef(null);
   const forwardOptionsRef = useRef(null);
-  
-  const { deleteMessage ,contacts} = messageStore();
-  const { authUser } = authStore();
-
+  const {forWardMessage} = messageStore()
+  const { deleteMessage ,contacts,  notifyMessage
+  } = messageStore();
+  const { authUser ,socket } = authStore();
   // Filter contacts based on search query
   const filteredContacts = contacts?.filter(contact => 
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -55,6 +55,13 @@ export default function DropDownMenu({
     deleteMessage(obj);
   };
 
+  useEffect(()=>{
+    notifyMessage();
+return ()=>{
+  socket.off("newNotification")
+}
+},[notifyMessage,socket])
+
   const handleDeleteForEveryone = async(messageId, userId, receiverId) => {
     let obj = {
         receiverId: receiverId,
@@ -65,25 +72,40 @@ export default function DropDownMenu({
   };
 
   const handleContactSelection = (contactId,message) => {
-    if (selectedContacts.includes(contactId)) {
-      setSelectedContacts(selectedContacts.filter(id => id !== contactId));
+
+    let message_obj = {
+      receiver:contactId,
+      message:message.text,
+      status:"received",
+      sender:authUser._id,
+      file:message.file,
+      images:message.image,
+      video:message.video,
+    }
+    if (selectedContacts.some((item)=>(item.contactId === contactId))) {
+      setSelectedContacts(selectedContacts.filter(item => item.contactId != contactId));
     } else {
-      setSelectedContacts([...selectedContacts, {contactId,message}]);
+      setSelectedContacts([...selectedContacts, {contactId,message_obj}]);
     }
   };
 
   const handleForwardToSelected = () => {
     // Here you would normally implement the actual forward logic
     console.log('Forwarding message to:', selectedContacts);
-    alert(`Message forwarded to ${selectedContacts.length} contacts`);
-    
+    let messageObjectArray=selectedContacts.map(item=>item.message_obj)
+    console.log(messageObjectArray)
     // Reset state
+    let obj={
+      arrOfMessage:messageObjectArray,
+      activeContactId
+    }
+    forWardMessage(obj)
+    messageObjectArray=[];
     setSelectedContacts([]);
     setShowForwardOptions(false);
     setShowMenu(null);
     setActiveMenuId(null);
   };
-
   return (
     <div 
       onMouseOver={() => setShowMenu(message.id)} 
@@ -108,7 +130,7 @@ export default function DropDownMenu({
         
         {showForwardOptions && (
           <div 
-            className="absolute right-full  top-0 w-64 bg-gray-800 rounded-md shadow-lg z-20"
+            className={`absolute ${message?.isOwn?"right-full":"left-full"}  top-0 w-64 bg-gray-800 rounded-md shadow-lg z-20`}
           >
             <div className="p-3">
               <div className="flex items-center bg-gray-700 rounded-md px-2 mb-2">
@@ -123,10 +145,10 @@ export default function DropDownMenu({
               </div>
               
               <div className="max-h-64 overflow-y-auto">
-                {filteredContacts.map(contact => (
+                {filteredContacts.map((contact) => (
                   <div
                     key={contact._id}
-                    onClick={() => handleContactSelection(contact._id,message)}
+                    onClick={() => handleContactSelection(contact?.userId._id,message)}
                     className="flex items-center p-2 hover:bg-gray-700 rounded-md cursor-pointer"
                   >
                     <div className="relative">
@@ -141,7 +163,7 @@ export default function DropDownMenu({
                       <p className="text-sm font-medium text-white">{contact.name}</p>
                       <p className="text-xs text-gray-400">{contact.lastSeen}</p>
                     </div>
-                    {selectedContacts.includes(contact._id) && (
+                    {selectedContacts?.some((item)=>item?.contactId===contact?.userId?._id) && (
                       <Check size={16} className="text-blue-500" />
                     )}
                   </div>

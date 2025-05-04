@@ -176,6 +176,7 @@ if(!condition){
   
   // Add the new listener
   socket.on('newNotification', (data) => {
+    console.log(data)
     if (data.receiverId == authUser._id) {
       set((state) => {
         const existingIndex = state.notify.findIndex(
@@ -258,6 +259,15 @@ unSubScribe:()=>{
             }
         } catch (error) {
           console.log(error)  
+        }
+    },
+
+    forWardMessage:async(arrayOfMessage)=>{
+        try {
+            const response=await axiosInstance.post(`/message/forwardMessage`,arrayOfMessage)
+            console.log(response)
+        } catch (error) {
+            console.log(error)
         }
     }
 

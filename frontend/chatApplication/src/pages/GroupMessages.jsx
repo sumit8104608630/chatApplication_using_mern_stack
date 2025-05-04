@@ -389,11 +389,8 @@ function GroupMessages({
             >
               <div className="space-y-4">
                 {messages?.map((message) => {
-                  const sender = contacts?.find(c => c?.userId?._id === message.sender) || 
-                    { userId: { profilePhoto: "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png" }, 
-                      save_contact: true, 
-                      name: "Demo User", 
-                      phone: "+1234567890" };
+                  const sender = contacts?.find(c => c?.userId?._id === message.sender)
+                   
                   return (
                     <div 
                       key={message.id}

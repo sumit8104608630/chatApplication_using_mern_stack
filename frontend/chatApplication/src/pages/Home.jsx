@@ -343,9 +343,8 @@ return()=>{
       new_format.append("status", message.status);
       new_format.append("image", message.image);
       new_format.append("video",message.video)
-    
+    console.log(message)
     send_message(new_format);
-
       setMessage((prev) => ({
         ...prev,
         message: "",
@@ -724,7 +723,6 @@ const handleOutsideClick = () => {
   }
 };
 
-
   return (
     <div  onClick={handleOutsideClick} className="h-screen bg-[#1a1e23] z-0 flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
@@ -797,7 +795,7 @@ const handleOutsideClick = () => {
           return (
             <div 
               key={contact._id}
-              className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact === contact._id ? 'bg-gray-800' : ''}`}
+              className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact?._id === contact.userId._id ? 'bg-gray-800' : ''}`}
               onClick={() => handleContactClick(contact?.userId)}
             >
               <div className="flex items-center">

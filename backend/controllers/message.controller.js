@@ -326,6 +326,71 @@ const deleteMessage=asyncHandler(async(req,res)=>{
     }
 })
 
+
+// let's create the forward message feature 
+const forward_message=asyncHandler(async(req,res)=>{
+    try {
+        /*
+        1. first we will select the array of forward message for send message to all selected contact
+        2. save the message in the data base collection 
+        3. emit the whole array for real time receiving 
+         */
+        const {arrOfMessage,activeContactId}=req.body;
+        const {id} = req.user;
+        const user = await User.findById(id)
+        if(arrOfMessage.length===0){
+            return res.status(404).json(new apiResponse(404, null, "Invalid empty array"));
+        }
+       const messages = await Message.insertMany(arrOfMessage); 
+       // let's emit the message for real time communication
+       messages.forEach(message => {
+
+        // let format the message 
+        const formatted_message = {
+            id: message._id.toString(),
+            sender: message.sender.toString(),
+            deletedFor: message.deletedFor || [],
+            text: message.message,
+            image: message.images,
+            video: message.video,
+            file: message.file,
+            time:  new Date(message.createdAt).toLocaleTimeString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true
+              }),
+            isOwn: id.toString() != message.sender.toString(),
+            profilePhoto: user.profilePhoto,
+            status: message.status
+          };
+
+        let receiveSocketId=getOnlineUserIds(message.receiver);
+        if(receiveSocketId){
+            io.to(receiveSocketId).emit("newMessage",formatted_message)
+        }
+        if(activeContactId){
+
+            if(activeContactId===message.receiver.toString()){
+                console.log("yes",message.receiver)
+
+                let senderSocketId=getOnlineUserIds(message.sender);
+                if(senderSocketId){
+                    formatted_message.isOwn=true
+                    io.to(senderSocketId).emit("newMessage",formatted_message)
+                }
+            }
+        }
+        io.emit("newNotification", {sender:formatted_message.sender,receiverId:message.receiver});
+
+     });
+       return res.status(200).json(new apiResponse(200, messages, "Message forwarded"));
+    } catch (error) {
+        console.log(error)
+    }
+})
+
+
 export {
     store_messages,
     get_all_messages,
@@ -333,5 +398,6 @@ export {
     update_message_array_received,
     update_message_array_seen,
     Notification,
-    deleteMessage
+    deleteMessage,
+    forward_message
 }
