@@ -169,10 +169,8 @@ export const authStore=create((set,get)=>({
     console.log("Socket available:", !!socket);
     if (!socket) return;
     socket.on("getActiveUser", (activeUser) => {
-      console.log("Received activeUser data:", activeUser);
       try { 
         set({ activeUser: activeUser });
-        console.log("State updated successfully");
       } catch (error) {
         console.log("Error in set function:", error);
       }
@@ -197,8 +195,4 @@ delete_authUserMatchId:async(userId)=>{
       const {socket}=get();
       socket.emit('delete_authUserMatchId',userId);
     }
-
-
-
-
 }))
