@@ -22,7 +22,7 @@ export default function DropDownMenu({
   const {forWardMessage} = messageStore()
   const { deleteMessage ,contacts,  notifyMessage
   } = messageStore();
-  const { authUser ,socket } = authStore();
+  const { authUser ,socket,activeUser,get_online_user } = authStore();
   // Filter contacts based on search query
   const filteredContacts = contacts?.filter(contact => 
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -82,6 +82,29 @@ return ()=>{
       images:message.image,
       video:message.video,
     }
+
+
+    if (get_online_user.includes(activeContactId)&&activeContactId===contactId && activeUser) {
+      const seen_bool = activeUser?.some(
+        (item) =>
+          (item.authUserId === activeContactId && item.selectedId === authUser?._id) &&
+          !(item.authUserId === authUser?._id && item.selectedId === activeContactId)
+      );
+        if (seen_bool) {
+        //  clear_notification(activeContact?._id)
+
+        message_obj["status"] = "seen";
+
+        } else {
+          message_obj["status"] = "received";
+        }
+      }
+      else {
+        message_obj["status"] = "sent";
+      }
+
+
+
     if (selectedContacts.some((item)=>(item.contactId === contactId))) {
       setSelectedContacts(selectedContacts.filter(item => item.contactId != contactId));
     } else {

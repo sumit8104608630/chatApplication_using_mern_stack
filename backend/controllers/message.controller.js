@@ -341,7 +341,8 @@ const forward_message=asyncHandler(async(req,res)=>{
         if(arrOfMessage.length===0){
             return res.status(404).json(new apiResponse(404, null, "Invalid empty array"));
         }
-       const messages = await Message.insertMany(arrOfMessage); 
+       const messages = await Message.insertMany(arrOfMessage);
+       let SenderMessage=null; 
        // let's emit the message for real time communication
        messages.forEach(message => {
 
@@ -369,21 +370,22 @@ const forward_message=asyncHandler(async(req,res)=>{
         if(receiveSocketId){
             io.to(receiveSocketId).emit("newMessage",formatted_message)
         }
-        if(activeContactId){
 
-            if(activeContactId===message.receiver.toString()){
+        if (activeContactId && activeContactId === message.receiver.toString()) {
 
                 let senderSocketId=getOnlineUserIds(message.sender);
                 if(senderSocketId){
+                    console.log("senderSocketId",senderSocketId)
                     formatted_message.isOwn=true
-                    io.to(senderSocketId).emit("newMessage",formatted_message)
+                    console.log("formatted_message",formatted_message)
+                    SenderMessage=formatted_message
                 }
             }
-        }
+        
         io.emit("newNotification", {sender:formatted_message.sender,receiverId:message.receiver});
 
      });
-       return res.status(200).json(new apiResponse(200, messages, "Message forwarded"));
+       return res.status(200).json(new apiResponse(200, SenderMessage, "Message forwarded"));
     } catch (error) {
         console.log(error)
     }

@@ -264,8 +264,15 @@ unSubScribe:()=>{
 
     forWardMessage:async(arrayOfMessage)=>{
         try {
+            const {messages}=get()
             const response=await axiosInstance.post(`/message/forwardMessage`,arrayOfMessage)
             console.log(response)
+            if(response.status===200){
+                if(response.data.data){
+                set({messages:[...messages,response.data.data]})
+                }
+            }
+
         } catch (error) {
             console.log(error)
         }
