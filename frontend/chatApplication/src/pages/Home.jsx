@@ -973,6 +973,7 @@ const handleOutsideClick = () => {
          fullViewImage={fullViewImage}
          setFullViewImage={setFullViewImage}
          handleDownloadFile={handleDownloadFile}
+         setShowFilePopup={setShowFilePopup}
        />
       }
     </div>

@@ -11,6 +11,7 @@ export const messageStore=create((set,get)=>({
     filterLoading:false,
     filterArray:[],
     notify:[],
+    messageForwarding:false,
     messageSendingLoading:false,
     messageLoading:false,
     selectedUser:null,
@@ -44,7 +45,6 @@ export const messageStore=create((set,get)=>({
             else{
             const response = await axiosInstance.get(`/user/searchUser?searchQuery=${query}`);
             if (response.status === 200) {
-                console.log("yes")
               const matchedUser = response.data.data;
               const filterContact = contacts.filter(contact => {
             return matchedUser.some(user=>contact.userId && contact.userId._id && contact.userId._id === user._id)
@@ -264,6 +264,8 @@ unSubScribe:()=>{
 
     forWardMessage:async(arrayOfMessage)=>{
         try {
+            set({messageForwarding:true})
+
             const {messages}=get()
             const response=await axiosInstance.post(`/message/forwardMessage`,arrayOfMessage)
             console.log(response)
@@ -271,9 +273,12 @@ unSubScribe:()=>{
                 if(response.data.data){
                 set({messages:[...messages,response.data.data]})
                 }
+                set({messageForwarding:false})
             }
 
         } catch (error) {
+            set({messageForwarding:false})
+
             console.log(error)
         }
     }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState ,useRef} from 'react';
 import { 
   ArrowLeft, 
   Phone, 
@@ -51,10 +51,42 @@ const ChatContainer = ({
   handleSendMessage,
   fullViewImage,
   setFullViewImage,
-  handleDownloadFile
+  handleDownloadFile,
+  setShowFilePopup
 }) => {
+
+
+
+const [showEmojiPicker,setShowEmojiPicker]=useState(false)
+const emojiPickerRef = useRef(null);
+
+// Common emojis for a simple picker
+const commonEmojis = [
+  '😊', '😂', '🥰', '😍', '😎', '😢', '😡', '👍', 
+  '👏', '🙏', '🔥', '❤️', '💯', '✅', '⭐', '🎉',
+  '🤔', '😜', '🤣', '😇', '😴', '🤗', '🤨', '🤓',
+  '💪', '👀', '🙄', '😘', '😋', '🤩', '😭', '🤷‍♂️',
+];
+
+
+
+    const handleEmoji = () => {
+        setShowEmojiPicker(!showEmojiPicker);
+        // Close file popup if open
+        if (showFilePopup) setShowFilePopup(false);
+      };
+
+
+      const insertEmoji = (emoji) => {
+        console.log(emoji)
+        // Insert emoji at cursor position or at end
+        
+        let newMessage=message.message+emoji
+        handleInputChange({ target: { value: newMessage } });
+    };
+
   return (
-    <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 z-0 flex-col h-full`}>
+    <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1  flex-col h-full`}>
       {activeContact ? (
         <>
           {/* Chat Header */}
@@ -473,11 +505,45 @@ const ChatContainer = ({
                   </button>
                 </div>
               )}
-              <button className="text-gray-400 hover:text-white p-1 sm:p-2 hidden sm:block">
+             <div>
+
+             {showEmojiPicker && (
+        <div 
+          ref={emojiPickerRef}
+          className="absolute bottom-12 right-0 sm:right-12 bg-gray-900 rounded-lg shadow-lg p-3 border border-gray-700 z-10"
+        >
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-white text-sm font-medium">Choose an emoji</h4>
+            <button 
+              onClick={handleEmoji}
+              className="text-gray-400 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-8 gap-1 w-64">
+            {commonEmojis.map((emoji, index) => (
+              <button 
+                key={index}
+                onClick={() => insertEmoji(emoji)}
+                className="text-xl hover:bg-gray-800 rounded p-1 transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+
+             <button onClick={handleEmoji} className="text-gray-400 hover:text-white p-1 sm:p-2 hidden sm:block">
                 <Smile className="h-5 w-5" />
               </button>
+             </div>
               <button 
-                onClick={() => handleSendMessage(activeContact)} 
+                onClick={() =>{ handleSendMessage(activeContact)
+                    setShowEmojiPicker(prev=>!prev)
+                }} 
                 className="bg-teal-500 text-white p-1 sm:p-2 rounded-lg"
                 disabled={!message.message && !selectedFile}
               >
