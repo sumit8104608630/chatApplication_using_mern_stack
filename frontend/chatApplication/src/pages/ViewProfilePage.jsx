@@ -100,8 +100,10 @@ export default function ViewProfile({
     setContact(prev => ({...prev, isSaved: true}));
   };
 
-  const handleMediaData = (sender,receiver) => {
-    getAllMedia(sender,receiver)
+  const handleMediaData = () => {
+    setActiveTab('media');
+
+    getAllMedia(authUser._id,contact._id)
   };
 
   const handleRemoveContact = () => {
@@ -118,7 +120,6 @@ export default function ViewProfile({
         </div>
       );
     }
-    
     return (
       <div className="p-4 sm:p-6">
         {/* Media type selector */}
@@ -216,10 +217,7 @@ export default function ViewProfile({
             
             <button 
               className={`flex-1 flex items-center justify-center py-3 ${activeTab === 'media' ? 'text-teal-500 border-b-2 border-teal-500' : 'text-gray-400'}`}
-              onClick={() => {
-                setActiveTab('media');
-                handleMediaData(authUser._id,contact._id);
-              }}
+              onClick={ handleMediaData}
             >
               <Video size={18} className="mr-1" />
               <span className="text-xs">Media</span>

@@ -289,42 +289,45 @@ const Notification=asyncHandler(async(req,res)=>{
 
 // let's create the functionality of deleting message  
 
-const deleteMessage=asyncHandler(async(req,res)=>{
+const deleteMessage = asyncHandler(async (req, res) => {
     try {
-        /*
-        there will will be two possibility
-        1. delete from sender side 
-        2. delete from everyone means from both side
-        */ 
-        const {receiverId,messageId,arrayOfId}=req.body;
-        const receiver=getOnlineUserIds(receiverId)
-        if (!messageId || arrayOfId.length === 0) {
+        const { receiverId, messageId, arrayOfId } = req.body;
+        const receiver = getOnlineUserIds(receiverId);
+
+        if (!messageId || !arrayOfId || arrayOfId.length === 0) {
             return res.status(404).json(new apiResponse(404, null, "Invalid message ID or empty array"));
         }
 
-        
+        let updateQuery = {};
 
-        // let's update the Message 
-       const updatedMessage =await Message.findByIdAndUpdate(
-
-        messageId,
-        { $set: { deletedFor: arrayOfId } }, // Update
-        { new: true }   
-                             
-    )
-        if(receiver){
-          io.to(receiver).emit("deletedMessage",{
-            messageId,
-            deletedFor:arrayOfId
-          })
+        if (arrayOfId.length === 1) {
+            // Push one userId to deletedFor array
+            updateQuery = { $addToSet: { deletedFor: arrayOfId[0] } };
+        } else {
+            // Replace entire array
+            updateQuery = { $set: { deletedFor: arrayOfId } };
         }
 
-    return res.status(200).json(new apiResponse(200, updatedMessage, "Message updated"));
+        const updatedMessage = await Message.findByIdAndUpdate(
+            messageId,
+            updateQuery,
+            { new: true }
+        );
 
+        if (receiver) {
+            io.to(receiver).emit("deletedMessage", {
+                messageId,
+                deletedFor: updatedMessage.deletedFor
+            });
+        }
+
+        return res.status(200).json(new apiResponse(200, updatedMessage, "Message updated"));
     } catch (error) {
-      console.log(error)  
+        console.log(error);
+        return res.status(500).json(new apiResponse(500, null, "Internal Server Error"));
     }
-})
+});
+
 
 
 // let's create the forward message feature 
@@ -403,7 +406,7 @@ const get_all_media = asyncHandler(async (req, res) => {
         1. Get all the image and video files and create format 
         2. By aggregation pipeline
         */
-       
+       console.log(receiverId,senderId)
         const mediaMessages = await Message.aggregate([
             {
                 $match: {
@@ -462,8 +465,37 @@ const get_all_media = asyncHandler(async (req, res) => {
         return res.status(500).json(
             new apiResponse(500, null, "Internal server error")
         );
-    }
+    }delete_all_messages
 });
+
+// let's create controller for delete all messages
+const delete_all_messages=asyncHandler(async(req,res)=>{
+    try {
+        const {receiverId}=req.body;
+        const {id}=req.user;
+        if(!contactId){
+            return res.status(400).json(new apiResponse(400, null, "please provide contactId"))
+        }
+        /*
+        1.first find all message,
+        2.insert id in deleted for array
+        */
+       await Message.updateMany({
+        $or:[
+            { sender: id, receiver: receiverId },
+            { sender: receiverId, receiver: id }        ]
+       },
+       {
+        $addToSet: { deletedFor: id }
+
+       }
+    )
+    new apiResponse(200, {}, "Media files fetched successfully")
+
+    } catch (error) {
+        console.log(error)
+    }
+})
 
 
 export {
@@ -475,5 +507,6 @@ export {
     Notification,
     deleteMessage,
     forward_message,
-    get_all_media   
+    get_all_media,
+    delete_all_messages   
 }
