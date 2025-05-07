@@ -47,6 +47,8 @@ const App = () => {
           <Route path="profile" element={authUser ? <Profile /> : <Navigate to="/login" />} />
           <Route path="contacts" element={authUser ? <AddContactPage /> : <Navigate to="/login" />} />
           <Route path="createGroup" element={authUser ? <GroupForm /> : <Navigate to="/login" />} />
+          <Route path="createGroup" element={authUser ? <GroupForm /> : <Navigate to="/login" />} />
+
           <Route path="forgotPassword" element={!authUser ? <ForgotPassword /> : <Navigate to="/" />} />
           <Route path="*" element={<Error />} />
         </Route>

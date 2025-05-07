@@ -1,4 +1,4 @@
-import React, { useState ,useRef} from 'react';
+import React, { useState ,useRef, useEffect} from 'react';
 import { 
   ArrowLeft, 
   Phone, 
@@ -6,7 +6,10 @@ import {
   MoreVertical, 
   Download, 
   File, 
+  Trash2,
   PlusCircle, 
+  UserMinus,
+  UserPlus,
   Paperclip, 
   Image as ImageIcon, 
   VideoIcon, 
@@ -15,6 +18,7 @@ import {
   Send 
 } from 'lucide-react';
 import DropDownMenu from './DropDownMenu';
+import ViewProfile from '../pages/ViewProfilePage';
 
 const ChatContainer = ({
   showContactsOnMobile,
@@ -59,6 +63,10 @@ const ChatContainer = ({
 
 const [showEmojiPicker,setShowEmojiPicker]=useState(false)
 const emojiPickerRef = useRef(null);
+const [toggleViewProfile,setToggle]=useState(false)
+const [isOpen, setIsOpen] = useState(false);
+const dropdownRef = useRef(null);
+
 
 // Common emojis for a simple picker
 const commonEmojis = [
@@ -69,6 +77,38 @@ const commonEmojis = [
 ];
 
 
+
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setIsOpen(false);
+    }
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+  };
+}, []);
+
+
+
+// Get contact information
+const currentContact = contacts.find(c => c.userId._id === activeContact?._id);
+const isSaved = currentContact?.save_contact;
+const contactName = isSaved 
+  ? currentContact?.name 
+  : currentContact?.phone;
+
+if (!activeContact || !currentContact) return null;
+
+
+
+
+
+const toggleDropdown = () => {
+  setIsOpen(!isOpen);
+};
 
     const handleEmoji = () => {
         setShowEmojiPicker(!showEmojiPicker);
@@ -85,10 +125,19 @@ const commonEmojis = [
         handleInputChange({ target: { value: newMessage } });
     };
 
+
+const handleViewProfile=(activeContact)=>{
+  console.log(activeContact)
+  setToggle(true)
+}
+
+
+
   return (
     <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1  flex-col h-full`}>
       {activeContact ? (
         <>
+        
           {/* Chat Header */}
           <div className="p-4 border-b border-gray-800 flex justify-between items-center flex-shrink-0">
             <div className="flex items-center">
@@ -101,7 +150,7 @@ const commonEmojis = [
                 </button>
               )}
               {contacts.find(c => c.userId._id === activeContact._id) && (
-                <>
+                <button onClick={()=>handleViewProfile(activeContact)} className='cursor-pointer flex justify-center items-center'>
                   <img
                     src={activeContact && contacts.find(c => c.userId._id === activeContact._id)?.save_contact 
                       ? contacts.find(c => c.userId._id === activeContact._id)?.userId.profilePhoto
@@ -110,7 +159,7 @@ const commonEmojis = [
                     className="w-10 h-10 rounded-full object-cover"
                   />
 
-                  <div className="ml-3">
+                  <div className="ml-3 text-start">
                     <h3 className="text-white font-medium">{contacts.find(c => c.userId._id === activeContact._id)?.save_contact
                       ? contacts.find(c => c.userId._id === activeContact._id)?.name
                       : contacts.find(c => c.userId._id === activeContact._id)?.phone}</h3>
@@ -118,9 +167,14 @@ const commonEmojis = [
                       {get_online_user.includes(activeContact._id) ? 'Online' : 'Last seen ' + formatLastSeen(contacts.find(c => c.userId._id === activeContact._id)?.userId.lastSeen)}
                     </p>
                   </div>
-                </> 
+                </button> 
               )}
             </div>
+           { toggleViewProfile &&
+            <div>
+              <ViewProfile isSaved={isSaved} contact={activeContact} toggleViewProfile={toggleViewProfile} setToggle={setToggle} />
+            </div>
+            }
             <div className="flex items-center space-x-3">
               <button onClick={()=>handleCall(activeContact,authUser)} className="text-gray-400 hover:text-white hidden sm:block">
                 <Phone className="h-5 w-5" />
@@ -128,11 +182,52 @@ const commonEmojis = [
               <button className="text-gray-400 hover:text-white hidden sm:block">
                 <Video onClick={()=>{}} className="h-5 w-5" />
               </button>
-              <button className="text-gray-400 hover:text-white">
+              <div>
+              <button onClick={toggleDropdown}  className="text-gray-400 cursor-pointer hover:text-white">
                 <MoreVertical className="h-5 w-5" />
               </button>
-            </div>
+
+              {isOpen && (
+        <div className="absolute right-5 top-30  w-48 bg-gray-800 rounded-md shadow-lg py-1 z-10">
+          <ul className="divide-y divide-gray-700">
+         
+            
+            <li>
+                <button 
+                  onClick={() => {
+                    // blockContact(activeContact._id);
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center cursor-pointer w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
+                >
+                  <UserMinus className="h-4 w-4 mr-3" />
+                  Remove Contact
+                </button>
+                </li>
+            <li>
+              <button 
+                onClick={() => {
+                  // deleteChat(activeContact._id);
+                  setIsOpen(false);
+                }}
+                className="flex items-center cursor-pointer w-full px-4 py-2 text-sm text-red-500 hover:bg-gray-700"
+              >
+                <Trash2 className="h-4 w-4 mr-3" />
+                Delete Chat
+              </button>
+            </li>
+          </ul>
+        </div>
+        
+      )}
+      </div>
+      </div>
+
+
           </div>
+
+
+
 
           {/* Messages */}
           {messageLoading ? (
@@ -542,7 +637,7 @@ const commonEmojis = [
              </div>
               <button 
                 onClick={() =>{ handleSendMessage(activeContact)
-                    setShowEmojiPicker(prev=>!prev)
+                    setShowEmojiPicker(false)
                 }} 
                 className="bg-teal-500 text-white p-1 sm:p-2 rounded-lg"
                 disabled={!message.message && !selectedFile}

@@ -7,10 +7,13 @@ import { Socket } from "socket.io-client"
 export const messageStore=create((set,get)=>({
     contacts:[],
     messages:[],
+    mediaLoading:false,
     contactCache:{},
     filterLoading:false,
     filterArray:[],
     notify:[],
+    allContactVideoMessages:[],
+    allContactImageMessages:[],
     messageForwarding:false,
     messageSendingLoading:false,
     messageLoading:false,
@@ -281,8 +284,26 @@ unSubScribe:()=>{
 
             console.log(error)
         }
-    }
+    },
 
+    getAllMedia:async(senderId,receiverId)=>{
+        try {
+            set({mediaLoading:true})
+            console.log(senderId,receiverId)
+           const response=await axiosInstance.get(`/message/get_all_media/${senderId}/${receiverId}`);
+            console.log(response)
+            if(response.status===200){
+                 set({ 
+                    allContactImageMessages: response.data.data.images || [],
+                    allContactVideoMessages: response.data.data.videos || [] 
+                  })
+                set({mediaLoading:false})
+            }
+        } catch (error) {
+          set({mediaLoading:false})
+          console.log(error)  
+        }
+    }
   
  
 }))

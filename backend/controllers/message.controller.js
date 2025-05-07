@@ -391,6 +391,80 @@ const forward_message=asyncHandler(async(req,res)=>{
     }
 })
 
+// let's get the all media of particular connection
+
+const get_all_media = asyncHandler(async (req, res) => {
+    try {
+        const { receiverId } = req.params;
+        const { senderId } = req.params;
+        
+       
+        /*
+        1. Get all the image and video files and create format 
+        2. By aggregation pipeline
+        */
+       
+        const mediaMessages = await Message.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { sender: new mongoose.Types.ObjectId(senderId), receiver: new mongoose.Types.ObjectId(receiverId) },
+                        { sender: new mongoose.Types.ObjectId(receiverId), receiver: new mongoose.Types.ObjectId(senderId) }
+                        
+                    ]
+                }
+            },
+           
+            
+            {
+                $project: {
+                    id:1,
+                    images: 1,
+                    video: 1,
+                    createdAt: 1
+                }
+            },
+            {
+                $sort: { createdAt: -1 } // Sort by newest first
+            },
+     
+        ]);
+
+        // Transform the result to the desired format
+        const result = {
+            images: [],
+            videos: []
+        };
+        
+        for (const msg of mediaMessages) {
+            if (msg.images) {
+                result.images.push({
+                    id: msg._id,
+                    fileUrl: msg.images,
+                    createdAt: msg.createdAt
+                });
+            }
+            if (msg.video) {
+                result.videos.push({
+                    id: msg._id,
+                    fileUrl: msg.video,
+                    createdAt: msg.createdAt
+                });
+            }
+        }
+        
+        return res.status(200).json(
+            new apiResponse(200, result, "Media files fetched successfully")
+        );
+        
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(
+            new apiResponse(500, null, "Internal server error")
+        );
+    }
+});
+
 
 export {
     store_messages,
@@ -400,5 +474,6 @@ export {
     update_message_array_seen,
     Notification,
     deleteMessage,
-    forward_message
+    forward_message,
+    get_all_media   
 }

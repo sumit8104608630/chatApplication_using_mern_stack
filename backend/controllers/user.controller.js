@@ -237,20 +237,22 @@ const check_user_present = asyncHandler(async (req, res) => {
         const { phoneNumber } = req.body;
         const {id}=req.user
         const current_user = await User.findById(id);
-       const contact= current_user.contacts.find(item=>item.phone==phoneNumber);
-       
+       const contact= current_user.contacts.find(item=>Number(item.phone)===Number(phoneNumber));
         if(current_user.phoneNumber==phoneNumber){
-            return res.status(402).json(new apiResponse(402, {}, "it is you"))
+            return res.status(404).json(new apiResponse(404, {}, "Looks like you took a wrong turn. This one's on you!"));
         }
         
         else if(contact){
             if(!contact.save_contact){
-            return res.status(403).json(new apiResponse(403, {}, "it is you"))
+                return res.status(200).json(new apiResponse(200, {}, "User is already in your contact list but not yet saved"));
+            }
+            else{
+                return res.status(404).json(new apiResponse(404, {}, "This user is already in your contacts"));
             }
         }
         
         if (!phoneNumber) {
-            return res.status(400).json(new apiResponse(400, {}, "Phone number is required"));
+            return res.status(404).json(new apiResponse(404, {}, "Phone number is required"));
         }
 
         const user = await User.findOne({ phoneNumber:phoneNumber.trim() });
