@@ -472,9 +472,10 @@ const get_all_media = asyncHandler(async (req, res) => {
 const delete_all_messages=asyncHandler(async(req,res)=>{
     try {
         const {receiverId}=req.body;
+        console.log(receiverId)
         const {id}=req.user;
-        if(!contactId){
-            return res.status(400).json(new apiResponse(400, null, "please provide contactId"))
+        if(!receiverId){
+            return res.status(400).json(new apiResponse(400, null, "please provide receiverId"))
         }
         /*
         1.first find all message,
@@ -490,8 +491,9 @@ const delete_all_messages=asyncHandler(async(req,res)=>{
 
        }
     )
-    new apiResponse(200, {}, "Media files fetched successfully")
-
+    return res.status(200).json(
+        new apiResponse(200, {}, "deleted successfully")
+    );
     } catch (error) {
         console.log(error)
     }

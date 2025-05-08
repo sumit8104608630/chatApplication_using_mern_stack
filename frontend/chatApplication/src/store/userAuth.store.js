@@ -186,8 +186,7 @@ deleteActiveUser: async(userIdObj) => {
   }
   const {socket} = get();
   socket.emit('delete_active_user', userIdObj);
-}
-,
+},
 
 delete_authUserMatchId:async(userId)=>{
       const {socket}=get();

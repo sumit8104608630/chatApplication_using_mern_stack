@@ -3,7 +3,8 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { 
   Search, MoreVertical, Phone, Video, Send, PlusCircle, Paperclip, 
   Smile, ArrowLeft, Menu, Image, File, X, Clock, Check, 
-  Trash2, CheckCheck, Forward, Download,VideoIcon
+  Trash2, CheckCheck, Forward, Download,VideoIcon,
+  MessageSquare
 } from 'lucide-react';
 import { messageStore } from '../store/message.store.js';
 import { authStore } from '../store/userAuth.store.js';
@@ -218,7 +219,6 @@ const handleGroupClick=(groupInfo)=>{
     }
     clear_notification(contactId._id)
     if (activeContact) {
-      console.log(activeContact)
       deleteActiveUser({
         authUserId: authUser._id,
         selectedId: activeContact._id
@@ -933,6 +933,37 @@ const handleOutsideClick = () => {
           localStream={myStream}
         />
       )}
+
+
+
+
+{
+
+(!activeContact && activeTab === "contacts") ? (
+  <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-[#1a1e23] text-gray-400">
+    <div className="mb-8">
+      <MessageSquare className="w-24 h-24 text-teal-500 opacity-50" />
+    </div>
+    <h2 className="text-2xl font-bold text-white mb-2">Welcome to ChatApp</h2>
+    <p className="text-center max-w-md px-6">
+      Select a contact from the list to start messaging
+    </p>
+  </div>
+)
+:
+(
+  <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-[#1a1e23] text-gray-400">
+  <div className="mb-8">
+    <MessageSquare className="w-24 h-24 text-teal-500 opacity-50" />
+  </div>
+  <h2 className="text-2xl font-bold text-white mb-2">Welcome to ChatApp</h2>
+  <p className="text-center max-w-md px-6">
+    Select a Group from the list to start messaging
+  </p>
+</div>
+)
+
+}
 
 
       {/* Right Side - Chat Area */}

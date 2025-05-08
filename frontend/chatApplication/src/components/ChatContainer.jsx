@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import DropDownMenu from './DropDownMenu';
 import ViewProfile from '../pages/ViewProfilePage';
+import { messageStore } from '../store/message.store';
 
 const ChatContainer = ({
   showContactsOnMobile,
@@ -66,7 +67,7 @@ const emojiPickerRef = useRef(null);
 const [toggleViewProfile,setToggle]=useState(false)
 const [isOpen, setIsOpen] = useState(false);
 const dropdownRef = useRef(null);
-
+const {delete_message}=messageStore()
 
 // Common emojis for a simple picker
 const commonEmojis = [
@@ -131,7 +132,10 @@ const handleViewProfile=(activeContact)=>{
   setToggle(true)
 }
 
+const deleteChat=(activeContactId)=>{
 
+  delete_message({receiverId:activeContactId})
+}
 
   return (
     <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1  flex-col h-full`}>
@@ -207,7 +211,7 @@ const handleViewProfile=(activeContact)=>{
             <li>
               <button 
                 onClick={() => {
-                  // deleteChat(activeContact._id);
+                   deleteChat(activeContact._id);
                   setIsOpen(false);
                 }}
                 className="flex items-center cursor-pointer w-full px-4 py-2 text-sm text-red-500 hover:bg-gray-700"

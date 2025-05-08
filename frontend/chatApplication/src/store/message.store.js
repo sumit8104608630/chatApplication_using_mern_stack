@@ -303,6 +303,18 @@ unSubScribe:()=>{
           set({mediaLoading:false})
           console.log(error)  
         }
+    },
+    // clear all message 
+    delete_message:async(obj)=>{
+        try {
+            console.log(obj)
+            const response=await axiosInstance.put(`/message/clearAllMessage`,obj);
+            if(response.status===200){
+                set({messages:[]})
+            }
+        } catch (error) {
+            console.log(error)
+        }
     }
   
  
