@@ -938,8 +938,8 @@ const handleOutsideClick = () => {
 
 
 {
-
-(!activeContact && activeTab === "contacts") ? (
+<>
+{(!activeContact  && !activeGroup && activeTab === "contacts") &&(
   <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-[#1a1e23] text-gray-400">
     <div className="mb-8">
       <MessageSquare className="w-24 h-24 text-teal-500 opacity-50" />
@@ -949,9 +949,8 @@ const handleOutsideClick = () => {
       Select a contact from the list to start messaging
     </p>
   </div>
-)
-:
-(
+)}
+{(!activeContact && !activeGroup && activeTab === "groups")&&(
   <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-[#1a1e23] text-gray-400">
   <div className="mb-8">
     <MessageSquare className="w-24 h-24 text-teal-500 opacity-50" />
@@ -961,8 +960,8 @@ const handleOutsideClick = () => {
     Select a Group from the list to start messaging
   </p>
 </div>
-)
-
+)}
+</>
 }
 
 
