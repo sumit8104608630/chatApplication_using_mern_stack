@@ -315,7 +315,6 @@ unSubScribe:()=>{
            const response=await axiosInstance.get(`/message/get_all_media/${senderId}/${receiverId}`);
             console.log(response)
             if(response.status===200){
-                console.log("yes")
                  set({ 
                     
                     allContactImageMessages: response.data.data.images || [],
