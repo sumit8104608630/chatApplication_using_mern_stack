@@ -56,6 +56,8 @@ export const authStore=create((set,get)=>({
         try {
             const response=await axiosInstance.get(`/user/logout`)
             if(response.data.statusCode==200){
+              const {socket,authUser}=get()
+              socket.emit("lastScene",authUser._id);
                 set({authUser:null})
                 get().disconnection()
                 navigate("/login")

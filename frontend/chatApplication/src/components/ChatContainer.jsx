@@ -128,7 +128,6 @@ const toggleDropdown = () => {
 
 
 const handleViewProfile=(activeContact)=>{
-  console.log(activeContact)
   setToggle(true)
 }
 

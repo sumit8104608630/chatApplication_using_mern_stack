@@ -182,7 +182,7 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="min-h-screen md:mt-10 mt-16 bg-[#1a1e23] grid lg:grid-cols-2">
+    <div className="min-h-screen md:mt-10  bg-[#1a1e23] grid lg:grid-cols-2">
       {/* Left Side - Form */}
       <div className="flex flex-col justify-center items-center p-6 sm:p-12 relative">
         {fullImage &&

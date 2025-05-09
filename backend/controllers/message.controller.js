@@ -264,6 +264,8 @@ const Notification=asyncHandler(async(req,res)=>{
                     $cond: [{ $eq: ["$status", "received"] }, 1, 0]
                   }
                 },
+                lastMessageDate: { $max: "$createdAt" },
+
                 totalMessages: { $sum: 1 }
               }
             },
@@ -272,6 +274,7 @@ const Notification=asyncHandler(async(req,res)=>{
             { $project: {
                 _id: 0,
                 senderId: "$_id",
+                lastMessageDate: 1,
                 unseenCount: 1
               }
             }

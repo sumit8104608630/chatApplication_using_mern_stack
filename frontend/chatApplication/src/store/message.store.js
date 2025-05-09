@@ -3,6 +3,7 @@ import { axiosInstance } from "../lib/axios"
 import { Contact } from "lucide-react"
 import { authStore } from "./userAuth.store"
 import { Socket } from "socket.io-client"
+import { data } from "react-router-dom"
 
 export const messageStore=create((set,get)=>({
     contacts:[],
@@ -157,6 +158,19 @@ if(!condition){
                 set({messages:[...messages,data]})
             }
         })
+
+        //update the contact last scene for latest update of contact
+        socket.on("new_Date",(data)=>{
+            const {contacts}=get();
+            const updated_contacts=contacts.map(contact=>{
+                if(data.userId===contact.userId._id){
+                   return {...contact,userId:{...contact.userId,lastSeen:data.newDate}}
+                }
+                return contact
+            })
+            set({contacts:updated_contacts})
+        })
+
          socket.on("deletedMessage",(data)=>{
             const {messageId,deletedFor}=data;
             const {messages}=get();
@@ -179,7 +193,6 @@ if(!condition){
   
   // Add the new listener
   socket.on('newNotification', (data) => {
-    console.log(data)
     if (data.receiverId == authUser._id) {
       set((state) => {
         const existingIndex = state.notify.findIndex(
@@ -243,6 +256,60 @@ unSubScribe:()=>{
         try {
             const response=await axiosInstance.get(`/message/notify`)
             set({notify:response.data.data})
+            const {contacts}=get()
+            console.log(response.data.data)
+
+            function sortContactsByNotificationDate(contacts, notifications) {
+                // Create a deep copy of contacts to avoid modifying the original array
+                const contactsWithNotificationInfo = contacts.map(contact => {
+                  // Find all notifications for this contact
+                  const matchingNotifications = notifications.filter(
+                    notification => notification.senderId === contact.userId._id
+                  );
+                  
+                  // Find the most recent notification date
+                  let latestNotification = null;
+                  let latestDate = null;
+                  
+                  if (matchingNotifications.length > 0) {
+                    latestNotification = matchingNotifications.reduce((latest, current) => {
+                      const currentDate = new Date(current.lastMessageDate);
+                      const latestDate = latest ? new Date(latest.lastMessageDate) : new Date(0);
+                      return currentDate > latestDate ? current : latest;
+                    }, null);
+                    
+                    latestDate = latestNotification ? new Date(latestNotification.lastMessageDate) : null;
+                  }
+                  
+                  // Return contact with additional notification info
+                  return {
+                    ...contact,
+                    hasNotification: !!latestNotification,
+                    latestNotificationDate: latestDate,
+                    unseenCount: latestNotification ? latestNotification.unseenCount : 0
+                  };
+                });
+                
+                // Sort contacts: first by whether they have notifications, then by notification date
+                contactsWithNotificationInfo.sort((a, b) => {
+                  // First priority: contacts with notifications come before those without
+                  if (a.hasNotification && !b.hasNotification) return -1;
+                  if (!a.hasNotification && b.hasNotification) return 1;
+                  
+                  // If both have notifications, sort by date (newest first)
+                  if (a.hasNotification && b.hasNotification) {
+                    return b.latestNotificationDate - a.latestNotificationDate;
+                  }
+                  
+                  // If neither has notifications, keep original order
+                  return 0;
+                });
+                
+                // Return sorted contacts (optionally remove the added fields)
+                return contactsWithNotificationInfo.map(({ hasNotification, latestNotificationDate, unseenCount, ...contact }) => contact);
+              }
+              set({contacts:sortContactsByNotificationDate(contacts,response.data.data)})
+
         } catch (error) {
             console.log(error)
         }

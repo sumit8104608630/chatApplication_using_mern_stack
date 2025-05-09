@@ -33,7 +33,10 @@ const AddContactPage = () => {
         } catch (error) {
             if (error?.response?.status === 404) {
                 setError(true);
+                if (contactData.phoneNumber!="")
+                {
                 setUserAvailable(error.response.data.message);
+                }
             }
         }
     };

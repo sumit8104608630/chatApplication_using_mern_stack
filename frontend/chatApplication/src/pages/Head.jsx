@@ -41,6 +41,10 @@ const Head = () => {
 
   }
 
+  const handleOutSideClick=()=>{
+    setProfileMenuOpen(false)
+  }
+
   // Navigation links
   const navLinks = [
     { name: "Create Group", path: "/createGroup", icon: <Group className="w-5 h-5" /> },
@@ -48,12 +52,12 @@ const Head = () => {
   ];
 
   return (
-<nav 
+<nav  
   className={`bg-[#1a1e23] border-b-1 text-white sticky top-0 w-full z-30 transition-all duration-300 ${
     scrolled ? "shadow-lg shadow-black/20" : " "
   }`}
 >
-  <div className="flex w-full px-10">
+  <div  className="flex w-full px-10">
     <div className="flex items-center  w-full justify-between h-16">
       {/* Logo and Brand */}
       <div className="flex-shrink-0 flex items-center">

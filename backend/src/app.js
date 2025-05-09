@@ -71,6 +71,11 @@ io.on("connection", (socket) => {
 });
 
 
+//send real time last scene
+
+socket.on("lastScene", (userId) => {
+  io.emit("new_Date", {userId, newDate: Date.now()})
+})
 
  
 
