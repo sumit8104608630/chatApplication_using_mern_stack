@@ -716,7 +716,6 @@ const toggleMenu = (messageId) => {
   }
 };
 
-console.log(contacts)
 const handleOutsideClick = () => {
   if (activeMenuId !== null) {
     setActiveMenuId(null);
