@@ -126,7 +126,6 @@ if(!condition){
             const response =await axiosInstance.post(`/message/save_message`,data);
             set({messages:[...messages,response.data.data]})
             if (response.data.data.image || response.data.data.video) {
-                console.log(response.data.data.image)
                 if (response.data.data.image) {
                   cacheMedia.images = [...(cacheMedia.images || []), response.data.data.image];
                 }
