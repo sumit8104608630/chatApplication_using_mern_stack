@@ -122,9 +122,18 @@ if(!condition){
     send_message:async(data)=>{
         try {
             set({messageSendingLoading:true})
-            const {messages}=get();
+            const {messages,cacheMedia}=get();
             const response =await axiosInstance.post(`/message/save_message`,data);
             set({messages:[...messages,response.data.data]})
+            if (response.data.data.image || response.data.data.video) {
+                console.log(response.data.data.image)
+                if (response.data.data.image) {
+                  cacheMedia.images = [...(cacheMedia.images || []), response.data.data.image];
+                }
+                    if (response.data.data.video) {
+                  cacheMedia.videos = [...(cacheMedia.videos || []), response.data.data.video];
+                }
+              }
 
             if(response.status==201){
                 set({messageSendingLoading:false})
@@ -155,8 +164,16 @@ if(!condition){
         const{selectedUser}=get()
         socket.on('newMessage',(data)=>{
             if(data.sender==selectedUser||data.receiver==selectedUser){
-                const {messages}=get();
+                const {messages,cacheMedia}=get();
                 set({messages:[...messages,data]})
+                if (data.image || data.video) {
+                    if (data.image) {
+                      cacheMedia.images = [...(cacheMedia.images || []), data.image];
+                    }
+                        if (data.video) {
+                      cacheMedia.videos = [...(cacheMedia.videos || []), data.video];
+                    }
+                  }
             }
         })
 
