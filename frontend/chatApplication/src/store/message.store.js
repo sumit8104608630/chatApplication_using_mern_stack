@@ -127,10 +127,11 @@ if(!condition){
             set({messages:[...messages,response.data.data]})
             if (response.data.data.image || response.data.data.video) {
                 if (response.data.data.image) {
-                  cacheMedia.images = [...(cacheMedia.images || []), response.data.data.image];
+                  cacheMedia.images = [...(cacheMedia.images || []), {id:Date.now(),fileUrl:response.data.data.image,createdAt: Date.now()}];
+                  console.log(cacheMedia)
                 }
                     if (response.data.data.video) {
-                  cacheMedia.videos = [...(cacheMedia.videos || []), response.data.data.video];
+                  cacheMedia.videos = [...(cacheMedia.videos || []), {id:Date.now(),fileUrl:response.data.data.video,createdAt: Date.now()}];
                 }
               }
 
