@@ -156,7 +156,7 @@ export const authStore=create((set,get)=>({
     // let's create method in which we say that which one we click on usr
     selectUser:async(connect_id,authUserId)=>{
       try {
-        const socket = io(API_URL, {
+         io(API_URL, {
           query: { selected_id: connect_id , authUserId: authUserId}
 
         });
@@ -193,5 +193,10 @@ deleteActiveUser: async(userIdObj) => {
 delete_authUserMatchId:async(userId)=>{
       const {socket}=get();
       socket.emit('delete_authUserMatchId',userId);
-    }
+    },
+
+
+
+
+
 }))

@@ -350,6 +350,94 @@ const searchUser=asyncHandler(async(req,res)=>{
     }
 })
 
+
+//let's create the function to block the user
+
+const blockUser=asyncHandler(async(req,res)=>{
+    try {
+        const {id}=req.user;
+        const {blockUserId}=req.body
+        if(!blockUserId){
+            return res.status(404).json(new apiResponse(404, {}, "please provide the blockId"));
+        }
+        await User.findByIdAndUpdate(
+            blockUserId,
+            { $addToSet: { blockedBy: id } }, 
+            { new: true }
+        );        
+        const user= await User.findById(id);
+        let isAlreadyBlocked=user.contacts.find(contact=>contact.userId.toString()===blockUserId.toString())
+        if(isAlreadyBlocked){
+            if(isAlreadyBlocked.block){
+                return res.status(403).json(new apiResponse(403, {}, "its already blocked"));
+            }
+            else{
+                const update=await User.findByIdAndUpdate(id,
+                    {
+                        $set:{
+                            "contacts.$[elem].block":true,
+                        }
+                    },
+                    {arrayFilters:[{"elem.userId":new mongoose.Types.ObjectId(blockUserId)}],new:true}
+                )
+                return res.status(200).json(new apiResponse(200, {}, "User blocked successfully"));
+
+            }
+        }else {
+            // User not in contacts list, we just blocked them at the user level
+            return res.status(200).json(new apiResponse(200, {}, "User blocked successfully"));
+        }
+
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json(new apiResponse(500, {}, "Something went wrong"));
+    }
+})
+
+
+// let's implement the unblocked functionality
+
+const unblock=asyncHandler(async(req,res)=>{
+    try {
+        const {id}=req.user;
+        const {unblockedId}=req.body;
+        if(!unblockedId){
+            return res.status(404).json(new apiResponse(404, {}, "please provide the unblockedId"));
+        }
+        await User.findByIdAndUpdate(
+            unblockedId,                       
+            { $pull: { blockedBy: id } }, 
+            { new: true }                 
+          );
+          const user= await User.findById(id);
+          let isAlreadyBlocked=user.contacts.find(contact=>contact.userId.toString()===unblockedId.toString())
+          if(isAlreadyBlocked){
+              if(!isAlreadyBlocked.block){
+                  return res.status(403).json(new apiResponse(403, {}, "its already blocked"));
+              }
+              else{
+                  const update=await User.findByIdAndUpdate(id,
+                      {
+                          $set:{
+                              "contacts.$[elem].block":false,
+                          }
+                      },
+                      {arrayFilters:[{"elem.userId":new mongoose.Types.ObjectId(unblockedId)}],new:true}
+                  )
+                  return res.status(200).json(new apiResponse(200, {}, "User blocked successfully"));
+  
+              }
+          }else {
+              // User not in contacts list, we just blocked them at the user level
+              return res.status(200).json(new apiResponse(200, {}, "User unblocked successfully"));
+          }
+
+    } catch (error) {
+        console.log(error)
+    }
+})
+
 export {
     userRegistration,
     user_login,
@@ -359,5 +447,7 @@ export {
     getUserInfo,
     check_user_present,
     update_Profile,
-    searchUser
+    searchUser,
+    blockUser,
+    unblock
 }

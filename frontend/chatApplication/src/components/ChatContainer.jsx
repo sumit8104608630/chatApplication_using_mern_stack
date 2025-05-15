@@ -9,11 +9,12 @@ import {
   Trash2,
   PlusCircle, 
   UserMinus,
-  UserPlus,
+  Ban,
   Paperclip, 
   Image as ImageIcon, 
   VideoIcon, 
   X, 
+  Unlock,
   Smile, 
   Send 
 } from 'lucide-react';
@@ -67,7 +68,7 @@ const emojiPickerRef = useRef(null);
 const [toggleViewProfile,setToggle]=useState(false)
 const [isOpen, setIsOpen] = useState(false);
 const dropdownRef = useRef(null);
-const {delete_message}=messageStore()
+const {delete_message,subScribe,unSubScribe}=messageStore()
 
 // Common emojis for a simple picker
 const commonEmojis = [
@@ -76,6 +77,14 @@ const commonEmojis = [
   '🤔', '😜', '🤣', '😇', '😴', '🤗', '🤨', '🤓',
   '💪', '👀', '🙄', '😘', '😋', '🤩', '😭', '🤷‍♂️',
 ];
+
+
+useEffect(()=>{
+  subScribe()
+  return ()=>{
+    unSubScribe()
+  }
+},[subScribe,unSubScribe]) 
 
 
 
@@ -126,7 +135,6 @@ const toggleDropdown = () => {
         handleInputChange({ target: { value: newMessage } });
     };
 
-
 const handleViewProfile=(activeContact)=>{
   setToggle(true)
 }
@@ -155,9 +163,9 @@ const deleteChat=(activeContactId)=>{
               {contacts.find(c => c.userId._id === activeContact._id) && (
                 <button onClick={()=>handleViewProfile(activeContact)} className='cursor-pointer flex justify-center items-center'>
                   <img
-                    src={activeContact && contacts.find(c => c.userId._id === activeContact._id)?.save_contact 
+                    src={activeContact && contacts.find(c => c.userId._id === activeContact._id)?.save_contact && !authUser.blockedBy.includes(activeContact?._id)
                       ? contacts.find(c => c.userId._id === activeContact._id)?.userId.profilePhoto
-                      : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"}
+                      : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1747290044/8742495_fqugdm.png"}
                     alt={activeContact && contacts.find(c => c.userId._id === activeContact._id)?.userId.name}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -228,6 +236,7 @@ const deleteChat=(activeContactId)=>{
 
 
           </div>
+
 
 
 
@@ -519,7 +528,21 @@ const deleteChat=(activeContactId)=>{
             )}
             
             {/* Input Bar */}
-            <div className="flex items-center bg-gray-800 rounded-lg p-2 relative">
+          {contacts.find(item=>item?.userId?._id===activeContact?._id).block ?
+            <div className="bg-red-900/60 text-white py-2 px-4 flex items-center justify-between">
+            <div className="flex items-center">
+              <Ban className="h-5 w-5 mr-2 text-red-400" />
+              <span>You've blocked this contact. Unblock to resume chatting.</span>
+            </div>
+            <button 
+              onClick={() => handleUnblock(activeContact._id)}
+              className="bg-gray-700 cursor-pointer hover:bg-gray-600 text-white text-sm px-3 py-1 rounded-md flex items-center"
+            >
+              <Unlock className="h-4 w-4 mr-1" />
+              <span>Unblock</span>
+            </button>
+          </div>
+          :<div className="flex items-center bg-gray-800 rounded-lg p-2 relative">
               <button 
                 className="text-gray-400 hover:text-white p-1 sm:p-2"
                 onClick={toggleFilePopup}
@@ -647,7 +670,7 @@ const deleteChat=(activeContactId)=>{
               >
                 <Send className="h-5 w-5" />
               </button>
-            </div>
+            </div>}
           </div>
         </>
       ) : (

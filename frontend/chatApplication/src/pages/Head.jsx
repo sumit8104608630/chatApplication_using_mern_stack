@@ -41,9 +41,9 @@ const Head = () => {
 
   }
 
-  const handleOutSideClick=()=>{
-    setProfileMenuOpen(false)
-  }
+  // const handleOutSideClick=()=>{
+  //   setProfileMenuOpen(false)
+  // }
 
   // Navigation links
   const navLinks = [

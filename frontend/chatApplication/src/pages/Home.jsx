@@ -18,6 +18,7 @@ import CallerInterface from '../components/Calling.jsx';
 import { usePeer } from '../components/Peer.jsx';
 import DropDownMenu from '../components/DropDownMenu.jsx';
 import ChatContainer from '../components/ChatContainer.jsx';
+import BlockedUserPopup from '../components/BlockedPopUp.jsx';
 
 const ChatHomePage = () => {
   const{get_all_groupMessage,setSelectedGroup,groupSubScribe,selectedGroup,unGroupSubScribe}=groupMessageStore();
@@ -51,6 +52,7 @@ const ChatHomePage = () => {
   const [filePreview, setFilePreview] = useState(null);
   const [fullViewImage, setFullViewImage] = useState(null);
   const [activeContact, setActiveContact] = useState(null);
+  const [showBlockedPopup, setShowBlockedPopup] = useState(false);
   const [showContactsOnMobile, setShowContactsOnMobile] = useState(true);
   const [calling,setCalling]=useState(null)
   useEffect(() => {
@@ -93,7 +95,7 @@ return ()=>{
         deleteActiveUser(activeContact.id);
       }
     }
-  }, [selectedUser, unSubScribe, subScribe, activeContact, deleteActiveUser]);
+  }, [selectedUser, unSubScribe, subScribe, activeContact, deleteActiveUser,contacts]);
 
 
   useEffect(()=>{
@@ -210,14 +212,14 @@ const handleGroupClick=(groupInfo)=>{
 
 
 
-
-  const handleContactClick = (contactId) => {
+  const handleContactClick = (contactDetail,blocked) => {
     setActiveGroup(null)
+    contactDetail["block"]=blocked;
     // Delete previous active user if exists
-    if(get_online_user.includes(contactId._id)){
-      locallyUpdateMessage(contactId._id)
+    if(get_online_user.includes(contactDetail._id)){
+      locallyUpdateMessage(contactDetail._id)
     }
-    clear_notification(contactId._id)
+    clear_notification(contactDetail._id)
     if (activeContact) {
       deleteActiveUser({
         authUserId: authUser._id,
@@ -226,15 +228,15 @@ const handleGroupClick=(groupInfo)=>{
     }
     
     if(get_online_user.includes(authUser._id)){
-        update_message_array_to_seen(contactId._id)
+        update_message_array_to_seen(contactDetail._id)
     }
   
     // Set new selected user
-    setSelectedUser(contactId._id);
-    selectUser(contactId._id,authUser._id);
-    setActiveContact(contactId);
-    setMessage((prev) => ({ ...prev, receiverId: contactId._id }));
-    getAll_messages(contactId._id);
+    setSelectedUser(contactDetail._id);
+    selectUser(contactDetail._id,authUser._id);
+    setActiveContact(contactDetail);
+    setMessage((prev) => ({ ...prev, receiverId: contactDetail._id }));
+    getAll_messages(contactDetail._id);
     setShowContactsOnMobile(false);
     socket.off("newNotification")
   };
@@ -316,6 +318,22 @@ return()=>{
 
   const handleSendMessage = () => {
     try {
+
+      if(authUser.blockedBy.includes(activeContact?._id)) {
+        // Show blocked popup
+        setShowBlockedPopup(true);
+
+        setMessage({
+          receiverId: "",
+          message: "",
+          status: "",
+          file: null,
+          image: null,
+          video: null,
+        })
+        
+        return; 
+      }
       const messageToSend = { ...message };
       if (get_online_user.includes(activeContact?._id) && activeUser) {
       const seen_bool = activeUser?.some(
@@ -693,7 +711,6 @@ useEffect(() => {
 
 
 
-
 const [activeMenuId, setActiveMenuId] = useState(null);
 
 
@@ -725,6 +742,12 @@ const handleOutsideClick = () => {
   return (
     <div  onClick={handleOutsideClick} className="h-screen bg-[#1a1e23] z-0 flex flex-col md:flex-row">
       {/* Left Side - Contacts List */}
+
+
+      {showBlockedPopup && <BlockedUserPopup onClose={() => setShowBlockedPopup(false)} />}
+
+
+
       <div className={`${showContactsOnMobile ? 'flex' : 'hidden'} md:flex md:w-80 border-r border-gray-800 flex-col h-full md:h-screen`}>
   {/* Header */}
   <div className="p-4 border-b border-gray-800">
@@ -795,18 +818,18 @@ const handleOutsideClick = () => {
             <div 
               key={contact._id}
               className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact?._id === contact.userId._id ? 'bg-gray-800' : ''}`}
-              onClick={() => handleContactClick(contact?.userId)}
+              onClick={() => handleContactClick(contact?.userId,contact?.block)}
             >
               <div className="flex items-center">
                 <div className="relative">
-                  {contact.save_contact ?
+                  {contact.save_contact && !authUser.blockedBy.includes(contact?.userId?._id) ?
                     <img
                       src={contact?.userId?.profilePhoto}
                       alt={contact?.userId?.name}
                       className="w-12 h-12 rounded-full object-cover"
                     /> :
                     <img
-                      src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
+                      src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1747290044/8742495_fqugdm.png"
                       alt=""
                       className="w-12 h-12 rounded-full object-cover"
                     />

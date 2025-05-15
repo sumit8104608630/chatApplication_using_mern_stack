@@ -30,13 +30,20 @@ profilePhoto:{
     type:String,
     default:"../public/default.png"
 },
+blockedBy:[{
+    type: mongoose.Schema.Types.ObjectId, ref: "User" 
+}
+],
 contacts: [
     {
       name: String,
       phone: {
         type: String,
       },
-
+      block:{
+        type:Boolean,
+        default:false
+      },
       save_contact:{
         type:Boolean,
         default:false

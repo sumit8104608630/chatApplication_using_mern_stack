@@ -3,7 +3,6 @@ import { axiosInstance } from "../lib/axios"
 import { Contact } from "lucide-react"
 import { authStore } from "./userAuth.store"
 import { Socket } from "socket.io-client"
-import { data } from "react-router-dom"
 
 export const messageStore=create((set,get)=>({
     contacts:[],
@@ -175,6 +174,26 @@ if(!condition){
                     }
                   }
             }
+        }) 
+
+        socket.on("blocked",(data)=>{
+            const authUser = authStore.getState().authUser;
+            authStore.setState({ 
+                authUser: {
+                    ...authUser,
+                    blockedBy: [...(authUser.blockedBy || []), data.from]
+                } 
+            });
+        })
+        socket.on("unBlocked",(data)=>{
+            const authUser = authStore.getState().authUser;
+            const updatedArray=authUser.blockedBy.filter(id =>id!=data.from )
+            authStore.setState({ 
+                authUser: {
+                    ...authUser,
+                    blockedBy: updatedArray
+                } 
+            });
         })
 
         //update the contact last scene for latest update of contact
@@ -236,7 +255,7 @@ if(!condition){
       });
     }
   });
-  socket
+  
 }
 ,      
 clear_notification:(contact_id)=>{
@@ -251,6 +270,9 @@ unSubScribe:()=>{
     socket.off('newMessage') // Make sure this is present and not commented
     socket.off("newNotification")
     socket.off("deletedMessage")
+    socket.off("blocked");
+    socket.off("unBlocked");
+
 
 },
     setSelectedUser:(selectedUserId)=>{
@@ -358,7 +380,52 @@ unSubScribe:()=>{
         } catch (error) {
             console.log(error)
         }
-    }
+    },
+    blockUser:async(obj)=>{
+        try {
+          const {contacts}=get()
+          const socket = authStore.getState().socket;
+          const authUser=authStore.getState().authUser;
+          const response=await axiosInstance.put(`/user/block_user`,obj);
+          console.log(response)
+          if(response.status===200){
+            socket.emit("block",{to:obj.blockUserId,from:authUser._id})
+
+            let updateContacts=contacts.map(contact=>{
+                if(contact.userId._id===obj.blockUserId){
+                    return {...contact,block:true}
+                }
+                return contact
+            })
+            set({contacts:updateContacts})
+          } 
+        } catch (error) {
+          console.log(error)
+        }
+      },
+
+      unBlockUser:async(obj)=>{
+        try {
+            const {contacts}=get()
+            const socket = authStore.getState().socket;
+            const authUser=authStore.getState().authUser;
+            const response=await axiosInstance.put(`/user/unblock_user`,obj);
+            if(response.status===200){
+                socket.emit("unBlock",{to:obj.unblockedId,from:authUser._id})
+
+                let updateContacts=contacts.map(contact=>{
+                    if(contact.userId._id===obj.unblockedId){
+                        return {...contact,block:false}
+                    }
+                    return contact
+                })
+
+                set({contacts:updateContacts})
+            }
+        } catch (error) {
+      console.log(error) 
+        }
+      }
   
  
 }))

@@ -44,6 +44,25 @@ io.on("connection", (socket) => {
     io.emit("onlineUser", Object.keys(userSocketMap));
    io.emit("getActiveUser", active);
 
+
+   socket.on("block",({to,from})=>{
+    const targetId=getOnlineUserIds(to);
+  console.log(to,from)
+    io.to(targetId).emit("blocked",{ 
+      to,
+      from
+    })
+  })
+
+  socket.on("unBlock",({to,from})=>{
+    const targetId=getOnlineUserIds(to);
+  console.log(to,from)
+    io.to(targetId).emit("unBlocked",{ 
+      to,
+      from
+    })
+  })
+  
    
    socket.on('delete_active_user', ({ authUserId, selectedId }) => {
     // First check if either ID is null or undefined
@@ -153,6 +172,9 @@ socket.on("call-user", ({ to, from,offer }) => {
         })
     }
   })
+
+//let' create real time block and un block  function
+
   
     // ✅ Clear a specific user's active chats
     socket.on('disconnect', () => {

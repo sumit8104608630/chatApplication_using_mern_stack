@@ -32,29 +32,16 @@ export default function ViewProfile({
   const [activeTab, setActiveTab] = useState('overview');
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 640);
   const [selectedMedia, setSelectedMedia] = useState(null);
-  const {getAllMedia,mediaLoading,allContactVideoMessages,allContactImageMessages} = messageStore()  
+  const {getAllMedia,mediaLoading,allContactVideoMessages,allContactImageMessages,blockUser,contacts,unBlockUser,subScribe,unSubScribe} = messageStore()  
   // Media content - simplified fake data with just URLs
-  const mediaContent = {
-    images: [
-      "/api/placeholder/300/300", 
-      "/api/placeholder/300/300", 
-      "/api/placeholder/300/300", 
-      "/api/placeholder/300/300", 
-      "/api/placeholder/300/300", 
-      "/api/placeholder/300/300"
-    ],
-    videos: [
-      "/api/placeholder/300/200",
-      "/api/placeholder/300/200",
-      "/api/placeholder/300/200",
-      "/api/placeholder/300/200"
-    ]
-  };
+ 
 
   const handleClose = () => {
     setToggle(false);
   };
   
+
+
   // Handle window resize for responsive design
   useEffect(() => {
     const handleResize = () => {
@@ -105,6 +92,25 @@ export default function ViewProfile({
 
     getAllMedia(authUser._id,contact._id)
   };
+
+
+  const handleBlockContact=(contactId)=>{
+    const data={
+      blockUserId:contactId
+    }
+    blockUser(data)
+  }
+
+  const handleUnblockContact=(contactId)=>{
+    const data={
+      unblockedId:contactId
+    }
+    unBlockUser(data)
+  }
+
+
+
+
 
   const handleRemoveContact = () => {
     setContact(prev => ({...prev, isSaved: false}));
@@ -235,7 +241,7 @@ export default function ViewProfile({
         
         {/* Desktop Sidebar navigation - Only visible on larger screens */}
         {!isMobileView && (
-          <div className="bg-gray-900 w-16 flex flex-col py-4 hidden sm:flex">
+          <div className="bg-gray-900 w-16 rounded-l-lg flex-col py-4 hidden sm:flex">
             <button 
               className={`flex flex-col items-center justify-center py-4 ${activeTab === 'overview' ? 'text-teal-500 border-l-2 border-teal-500' : 'text-gray-400'}`}
               onClick={() => setActiveTab('overview')}
@@ -291,7 +297,7 @@ export default function ViewProfile({
                     onClick={() => setShowFullImage(true)}
                   >
                     <img 
-                      src={contact.profilePhoto}
+                      src={!authUser.blockedBy.includes(contact?._id)?contact.profilePhoto:"https://res.cloudinary.com/dcsmp3yjk/image/upload/v1747290044/8742495_fqugdm.png"}
                       alt={contact.name} 
                       className="w-full h-full rounded-full object-cover"
                     />
@@ -382,8 +388,8 @@ export default function ViewProfile({
               )}
               
               <div className="grid grid-cols-2 gap-2 mt-2">
-                <button className="bg-gray-700 hover:bg-gray-600 text-gray-300 rounded py-2 text-xs sm:text-sm font-medium">
-                  Block
+                <button onClick={()=>contacts.find(item=>item?.userId?._id===contact?._id).block?handleUnblockContact(contact._id):handleBlockContact(contact._id)} className="bg-gray-700 hover:bg-gray-600 text-gray-300 rounded py-2 text-xs sm:text-sm font-medium">
+                 {contacts.find(item=>item?.userId?._id===contact?._id).block?"Unblock":"Block"}
                 </button>
                 <button className="bg-gray-700 hover:bg-gray-600 text-red-500 rounded py-2 text-xs sm:text-sm font-medium">
                   Report contact
