@@ -85,9 +85,10 @@ useEffect(()=>{
 return ()=>{
   socket.off("newNotification")
 }
-},[notifyMessage,socket,selectedUser ,activeContact ])
+},[notifyMessage,socket,selectedUser ,activeContact])
 
   useEffect(() => {
+    notifyMessage()
     subScribe();
     return () => {
       unSubScribe();
@@ -95,7 +96,7 @@ return ()=>{
         deleteActiveUser(activeContact.id);
       }
     }
-  }, [selectedUser, unSubScribe, subScribe, activeContact, deleteActiveUser,contacts]);
+  }, [selectedUser, unSubScribe, subScribe, activeContact, deleteActiveUser,contacts,notifyMessage]);
 
 
   useEffect(()=>{
@@ -279,18 +280,13 @@ const handleGroupClick=(groupInfo)=>{
 
         }
   }, [activeContact?._id,deleteActiveUser,authUser?._id,delete_authUserMatchId]);
-  useEffect(()=>{
-return()=>{
-  socket.off("newNotification")
 
-}
-  },[socket])
 
   useEffect(()=>{
     if(get_online_user.includes(activeContact?._id)){
       locallyUpdateMessage(activeContact?._id)
     }
-  },[get_online_user,activeContact])
+  },[get_online_user,activeContact,locallyUpdateMessage])
 
   const handleBackToContacts = () => {
     deleteActiveUser({
