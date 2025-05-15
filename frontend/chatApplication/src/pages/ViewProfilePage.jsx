@@ -32,7 +32,7 @@ export default function ViewProfile({
   const [activeTab, setActiveTab] = useState('overview');
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 640);
   const [selectedMedia, setSelectedMedia] = useState(null);
-  const {getAllMedia,mediaLoading,allContactVideoMessages,allContactImageMessages,blockUser,contacts,unBlockUser,subScribe,unSubScribe} = messageStore()  
+  const {getAllMedia,mediaLoading,allContactVideoMessages,allContactImageMessages,blockUser,contacts,unBlockUser} = messageStore()  
   // Media content - simplified fake data with just URLs
  
 

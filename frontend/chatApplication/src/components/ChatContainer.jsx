@@ -68,7 +68,7 @@ const emojiPickerRef = useRef(null);
 const [toggleViewProfile,setToggle]=useState(false)
 const [isOpen, setIsOpen] = useState(false);
 const dropdownRef = useRef(null);
-const {delete_message,subScribe,unSubScribe}=messageStore()
+const {delete_message,subScribe,unSubScribe,unBlockUser}=messageStore()
 
 // Common emojis for a simple picker
 const commonEmojis = [
@@ -113,7 +113,12 @@ const contactName = isSaved
 if (!activeContact || !currentContact) return null;
 
 
-
+const handleUnblock=(contactId)=>{
+  const data={
+    unblockedId:contactId
+  }
+  unBlockUser(data)
+}
 
 
 const toggleDropdown = () => {

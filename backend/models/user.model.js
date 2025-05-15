@@ -28,7 +28,7 @@ avatar:{
 },
 profilePhoto:{
     type:String,
-    default:"../public/default.png"
+    default:"https://res.cloudinary.com/dcsmp3yjk/image/upload/v1747290044/8742495_fqugdm.png"
 },
 blockedBy:[{
     type: mongoose.Schema.Types.ObjectId, ref: "User" 
