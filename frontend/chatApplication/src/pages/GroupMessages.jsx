@@ -12,10 +12,12 @@ import {
   Smile,
   Video as VideoIcon,
   Info,
-  Link
+  Link,
+  UserPlus
 } from 'lucide-react';
 import { groupMessageStore } from '../store/groupMessage.store';
 import { messageStore } from '../store/message.store';
+import { authStore } from '../store/userAuth.store';
 
 function GroupMessages({
   handleContactClick,
@@ -29,6 +31,7 @@ function GroupMessages({
   setActiveTab
 }) {
   const {sendGroupMessage,get_all_groupMessage,groupMessages} = groupMessageStore();
+  const {authUser}=authStore()
   const [showFilePopup, setShowFilePopup] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
@@ -184,12 +187,11 @@ function GroupMessages({
   const handleInputChange = (e) => {
     setMessage({ ...message, message: e.target.value });
   };
-
   const handleOptionClick = (option) => {
     // Handle the selected option
     console.log(`Selected option: ${option}`);
     if(option === "groupInfo") {
-      setGroupInfo(activeGroup?.members);
+      setGroupInfo([...(activeGroup?.admins)||[],...(activeGroup?.members)||[]]);
       setShowMoreOptions(null);
     }
     // Add your logic for each option here
@@ -260,7 +262,7 @@ function GroupMessages({
                   <div className="ml-3">
                     <h3 className="text-white font-medium">{activeGroup.name}</h3>
                     <p className="text-xs text-gray-400">
-                      {activeGroup.members?.length || 0} members
+                      {activeGroup.members?.length+activeGroup.admins?.length || 0} members
                     </p>
                   </div>
                 </> 
@@ -276,39 +278,46 @@ function GroupMessages({
               
               {/* More Options Dropdown */}
               {showMoreOptions && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 rounded-md shadow-lg z-10 border border-gray-700">
-                  <div className="py-1">
-                    <button 
-                      onClick={() => handleOptionClick('groupInfo')} 
-                      className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-gray-800"
-                    >
-                      <Info className="h-4 w-4 mr-2" />
-                      Group Info
-                    </button>
-                    <button 
-                      onClick={() => handleOptionClick('images')} 
-                      className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-gray-800"
-                    >
-                      <Image className="h-4 w-4 mr-2" />
-                      Images
-                    </button>
-                    <button 
-                      onClick={() => handleOptionClick('videos')} 
-                      className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-gray-800"
-                    >
-                      <VideoIcon className="h-4 w-4 mr-2" />
-                      Videos
-                    </button>
-                    <button 
-                      onClick={() => handleOptionClick('links')} 
-                      className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-gray-800"
-                    >
-                      <Link className="h-4 w-4 mr-2" />
-                      Links
-                    </button>
-                  </div>
-                </div>
-              )}
+  <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 rounded-md shadow-lg z-10 border border-gray-700">
+    <div className="py-1">
+      <button 
+        onClick={() => handleOptionClick('groupInfo')} 
+        className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-gray-800"
+      >
+        <Info className="h-4 w-4 mr-2" />
+        Group Info
+      </button>
+      <button 
+        onClick={() => handleOptionClick('images')} 
+        className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-gray-800"
+      >
+        <Image className="h-4 w-4 mr-2" />
+        Images
+      </button>
+      <button 
+        onClick={() => handleOptionClick('videos')} 
+        className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-gray-800"
+      >
+        <VideoIcon className="h-4 w-4 mr-2" />
+        Videos
+      </button>
+      <button 
+        onClick={() => handleOptionClick('links')} 
+        className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-gray-800"
+      >
+        <Link className="h-4 w-4 mr-2" />
+        Links
+      </button>
+{activeGroup.admins.some(admin=>admin._id===authUser._id)  &&   <button 
+        onClick={() => handleOptionClick('addContact')} 
+        className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-gray-800"
+      >
+        <UserPlus className="h-4 w-4 mr-2" />
+        Add Contact
+      </button>}
+    </div>
+  </div>
+)}
               {
                 groupInfo && (
                   <div className="absolute right-0 top-full mt-2 bg-gray-900 rounded-md shadow-lg z-10 border border-gray-700">
@@ -316,34 +325,41 @@ function GroupMessages({
                       groupInfo?.map((contact, index) => {
                         return (
                           <li 
-                            key={contact._id}
-                            onClick={() => handleClick(contact)}
-                            className={`hover:bg-gray-50 cursor-pointer transition-colors list-none ${index != groupInfo.length-1 && "border-b-1"}`}
-                          >
-                            <div className="flex items-center px-4 py-3">
-                              <div className="h-10 w-10 rounded-full bg-gray-300 flex-shrink-0 mr-3">
-                                {contact.profilePhoto ? (
-                                  <img 
-                                    src={contact.profilePhoto} 
-                                    alt={contact.name} 
-                                    className="h-10 w-10 rounded-full"
-                                  />
-                                ) : (
-                                  <img
-                                    src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
-                                    alt=""
-                                    className="w-12 h-12 rounded-full object-cover"
-                                  />
+                          key={contact._id}
+                          onClick={() => handleClick(contact)}
+                          className={`hover:bg-gray-50 cursor-pointer transition-colors list-none ${index != groupInfo.length-1 && "border-b-1"}`}
+                        >
+                          <div className="flex items-center px-4 py-3">
+                            <div className="h-10 w-10 rounded-full bg-gray-300 flex-shrink-0 mr-3">
+                              {contact.profilePhoto ? (
+                                <img 
+                                  src={contact.profilePhoto} 
+                                  alt={contact.name} 
+                                  className="h-10 w-10 rounded-full"
+                                />
+                              ) : (
+                                <img
+                                  src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"
+                                  alt=""
+                                  className="w-12 h-12 rounded-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-gray-500 truncate">{contact.name}</p>
+                                {activeGroup.admins.some(admin=>admin._id===contact._id) && (
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-2">
+                                    Admin
+                                  </span>
                                 )}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-500 truncate">{contact.name}</p>
-                                <p className="text-sm text-gray-500 truncate">
-                                  {contact.status || "Hey there! I'm using ChatApp."}
-                                </p>
-                              </div>
+                              <p className="text-sm text-gray-500 truncate">
+                                {contact.status || "Hey there! I'm using ChatApp."}
+                              </p>
                             </div>
-                          </li>
+                          </div>
+                        </li>
                         );
                       })
                     }
@@ -458,11 +474,7 @@ function GroupMessages({
                             )}
                           </div>
                           <p className={`text-xs mt-1 ${message.isOwn ? 'text-right' : ''} text-gray-400`}>
-                            {message?.isOwn &&
-                              <span className='mr-1 text-center'>
-                                {renderMessageStatus(message?.status, message?.isOwn)}
-                              </span>
-                            }
+                          
                             {message.time}
                           </p>
                         </div>

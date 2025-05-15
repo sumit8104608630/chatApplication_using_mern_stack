@@ -41,7 +41,6 @@ const CreateGroup = () => {
       setGroupData({ ...groupData, members: [...groupData.members, contact.userId._id] });
     }
   };
-console.log(groups)
   const handleAddNewContact = () => {
     if (newContact.name && newContact.phoneNumber) {
       const newId = Date.now(); // Generate a temporary ID
