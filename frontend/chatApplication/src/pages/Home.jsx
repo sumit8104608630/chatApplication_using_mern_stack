@@ -816,43 +816,52 @@ const handleOutsideClick = () => {
               className={`p-4 border-b border-gray-800 hover:bg-gray-800 cursor-pointer ${activeContact?._id === contact.userId._id ? 'bg-gray-800' : ''}`}
               onClick={() => handleContactClick(contact?.userId,contact?.block)}
             >
-              <div className="flex items-center">
-                <div className="relative">
-                  {contact.save_contact && !authUser.blockedBy.includes(contact?.userId?._id) ?
-                    <img
-                      src={contact?.userId?.profilePhoto}
-                      alt={contact?.userId?.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    /> :
-                    <img
-                      src="https://res.cloudinary.com/dcsmp3yjk/image/upload/v1747290044/8742495_fqugdm.png"
-                      alt=""
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  }
-                  {get_online_user.includes(contact?.userId?._id) && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
-                  )}
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="flex justify-between items-center">
-                    {contact?.save_contact ?
-                      <h3 className="text-white font-medium">{contact.name}</h3> :
-                      <h3 className="text-white font-medium">{contact.phone}</h3>
-                    }
-                    {get_online_user.includes(contact?.userId?._id) ? 
-                      <span className="text-xs text-green-500">Online</span> :
-                      <span className="text-xs text-gray-400">{formatLastSeen(contact?.userId?.lastSeen)}</span>
-                    }
-                  </div>
-                  <div className="flex justify-between items-center mt-1">
-                    <p className={`text-sm truncate max-w-xs ${messageStatus?.isUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
-                      {messageStatus?.latestMessage || contact?.userId?.status || "Hey there! I'm using ChatApp."}
-                    </p>
-                    {renderNotificationIndicator(contact)}
-                  </div>
-                </div>
-              </div>
+           <div className="flex items-center">
+  <div className="relative">
+    {contact.save_contact && !authUser.blockedBy.includes(contact?.userId?._id) ? (
+      contact?.userId?.profilePhoto ? (
+        <img
+          src={contact?.userId?.profilePhoto}
+          alt={contact?.userId?.name}
+          className="w-12 h-12 rounded-full object-cover"
+        />
+      ) : (
+        <div className="w-12 h-12 rounded-full bg-[#0e7970] flex items-center justify-center">
+          <span className="text-white font-semibold text-lg">
+            {contact?.userId?.name?.charAt(0).toUpperCase()}
+          </span>
+        </div>
+      )
+    ) : (
+      <img
+        src={contact?.userId?.profilePhoto}
+        alt=""
+        className="w-12 h-12 rounded-full object-cover"
+      />
+    )}
+    {get_online_user.includes(contact?.userId?._id) && (
+      <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-[#1a1e23]"></div>
+    )}
+  </div>
+  <div className="ml-3 flex-1">
+    <div className="flex justify-between items-center">
+      {contact?.save_contact ?
+        <h3 className="text-white font-medium">{contact.name}</h3> :
+        <h3 className="text-white font-medium">{contact.phone}</h3>
+      }
+      {get_online_user.includes(contact?.userId?._id) ? 
+        <span className="text-xs text-green-500">Online</span> :
+        <span className="text-xs text-gray-400">{formatLastSeen(contact?.userId?.lastSeen)}</span>
+      }
+    </div>
+    <div className="flex justify-between items-center mt-1">
+      <p className={`text-sm truncate max-w-xs ${messageStatus?.isUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
+        {messageStatus?.latestMessage || contact?.userId?.status || "Hey there! I'm using ChatApp."}
+      </p>
+      {renderNotificationIndicator(contact)}
+    </div>
+  </div>
+</div>
             </div>
           );
         })

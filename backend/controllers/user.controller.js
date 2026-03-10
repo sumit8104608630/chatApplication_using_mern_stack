@@ -24,16 +24,22 @@ const userRegistration=asyncHandler(async(req,res)=>{
         if(existingUser){
             return res.status(400).json(new apiResponse(400,{},"Contact already exist"));
         }
-        
-        if (!req.file || !req.file.filename) {
-            return res.status(400).json(new apiResponse(400, "", "Please upload your profile picture"));
-        }
-        
+       let user;
+        if (req.file) {
         const local_path = path.join(__dirname, `../public/temp/${req.file.filename}`);
         const upload=await uploadFile(local_path);
-        const user={
+         user={
             name,phoneNumber,email,password,profilePhoto:upload.secure_url
         }
+        }
+        else{
+        user={
+            name,phoneNumber,email,password,
+        }
+        }
+        
+        
+
         await User.create(user)
         return res.status(201).json(new apiResponse(201,user,"User created successfully"));
     } catch (error) {

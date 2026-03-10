@@ -13,7 +13,6 @@ const SignUpPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profilePreview, setProfilePreview] = useState(null);
   
-  // Validation states
   const [passwordError, setPasswordError] = useState("");
   const [nameError, setNameError] = useState("");
   const [phoneError, setPhoneError] = useState("");
@@ -40,15 +39,12 @@ const SignUpPage = () => {
     }
   }, [formData.profilePhoto]);
 
-  // Name validation
-
   useEffect(()=>{
     if(formData.name){
       setNameError(false)
     }
   },[formData])
 
-  // Phone number validation for Indian format (10 digits)
   useEffect(() => {
     if (formData.phoneNumber) {
       const phoneRegex = /^[6-9]\d{9}$/;
@@ -62,7 +58,6 @@ const SignUpPage = () => {
     }
   }, [formData.phoneNumber]);
 
-  // Email validation
   useEffect(() => {
     if (formData.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -76,11 +71,8 @@ const SignUpPage = () => {
     }
   }, [formData.email]);
 
-  // Password validation
   useEffect(() => {
     if (formData.password) {
-     // const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])(.{6,10})$/;
-      
       if (formData.password.length < 6 || formData.password.length > 10) {
         setPasswordError("Password must be between 6-10 characters");
       } else if (!formData.password.match(/[A-Z]/)) {
@@ -97,9 +89,8 @@ const SignUpPage = () => {
     } else {
       setPasswordError("");
     }
-  }, [formData.password,formData.confirmPassword]);
+  }, [formData.password, formData.confirmPassword]);
 
-  // Confirm password validation
   useEffect(() => {
     if (formData.confirmPassword && formData.password !== formData.confirmPassword) {
       setPasswordError("Passwords do not match");
@@ -110,58 +101,47 @@ const SignUpPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validate all fields before submission
+
     if (!formData.name) {
       setNameError("Name is required");
       return;
     }
-    
     if (!formData.phoneNumber) {
       setPhoneError("Phone number is required");
       return;
     }
-    
     if (!formData.email) {
       setEmailError("Email is required");
       return;
     }
-    
     if (!formData.password) {
       setPasswordError("Password is required");
       return;
     }
-    
     if (!formData.confirmPassword) {
       setPasswordError("Please confirm your password");
       return;
     }
-    
     if (formData.password !== formData.confirmPassword) {
       setPasswordError("Passwords do not match");
       return;
     }
-    
-    // Check if there are any validation errors
     if (nameError || phoneError || emailError || passwordError) {
       return;
     }
-    
-    // Proceed with signup if all validations pass
+
+    // profilePhoto is optional — proceed without it if not set
     signUp(formData, navigate);
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check if file is an image
       if (!file.type.match('image.*')) {
         alert("Please select an image file");
         return;
       }
-      
       setFormData({ ...formData, profilePhoto: file });
-      
-      // Create a preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfilePreview(reader.result);
@@ -174,7 +154,6 @@ const SignUpPage = () => {
     fileInputRef.current.click();
   };
 
-  // Function to check if form is valid
   const isFormValid = () => {
     return !nameError && !phoneError && !emailError && !passwordError && 
            formData.name && formData.phoneNumber && formData.email && 
@@ -409,7 +388,7 @@ const SignUpPage = () => {
             <button 
               type="submit" 
               className={`w-full ${isFormValid() ? 'bg-teal-500 hover:bg-teal-600' : 'bg-teal-500 bg-opacity-50 cursor-not-allowed'} text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 flex items-center justify-center mt-6`}
-              disabled={isSigningUp }
+              disabled={isSigningUp}
             >
               {isSigningUp ? (
                 <>

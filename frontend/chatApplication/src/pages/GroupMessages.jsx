@@ -189,7 +189,6 @@ function GroupMessages({
   };
   const handleOptionClick = (option) => {
     // Handle the selected option
-    console.log(`Selected option: ${option}`);
     if(option === "groupInfo") {
       setGroupInfo([...(activeGroup?.admins)||[],...(activeGroup?.members)||[]]);
       setShowMoreOptions(null);
