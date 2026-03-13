@@ -62,6 +62,9 @@ const ChatContainer = ({
 }) => {
 
 
+  useEffect(()=>{
+    console.log(activeContact)
+  },[activeContact])
 
 const [showEmojiPicker,setShowEmojiPicker]=useState(false)
 const emojiPickerRef = useRef(null);
@@ -170,7 +173,7 @@ const deleteChat=(activeContactId)=>{
                   <img
                     src={activeContact && contacts.find(c => c.userId._id === activeContact._id)?.save_contact && !authUser.blockedBy.includes(activeContact?._id)
                       ? contacts.find(c => c.userId._id === activeContact._id)?.userId.profilePhoto
-                      : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1747290044/8742495_fqugdm.png"}
+                      : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1773148437/charcha_bb47gj.jpg"}
                     alt={activeContact && contacts.find(c => c.userId._id === activeContact._id)?.userId.name}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -323,7 +326,7 @@ const deleteChat=(activeContactId)=>{
                             <img
                               src={contacts.find(c => c.userId._id === message.sender)?.save_contact 
                                 ? contacts.find(c => c.userId._id === message.sender)?.userId.profilePhoto 
-                                : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1742818111/chat_app/profilePhoto/kague1cmxe96oy0srft9.png"}
+                                : "https://res.cloudinary.com/dcsmp3yjk/image/upload/v1773148437/charcha_bb47gj.jpg"}
                               alt="avatar"
                               className="w-8 h-8 rounded-full object-cover mr-2 self-end"
                             />

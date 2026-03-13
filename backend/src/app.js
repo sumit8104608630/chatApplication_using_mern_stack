@@ -93,9 +93,14 @@ io.on("connection", (socket) => {
 //send real time last scene
 
 socket.on("lastScene", (userId) => {
-  io.emit("new_Date", {userId, newDate: Date.now()})
-})
-
+  console.log("user ID", userId);
+  
+  // ✅ Only remove where authUserId matches
+  active = active.filter(pair => pair.authUserId !== userId);
+  
+  io.emit("new_Date", { userId, newDate: Date.now() });
+  io.emit("getActiveUser", active);
+});
  
 
 
@@ -174,7 +179,12 @@ socket.on("call-user", ({ to, from,offer }) => {
   })
 
 //let' create real time block and un block  function
-
+socket.on("messages_seen", ({ to }) => {
+  const senderSocketId = getOnlineUserIds(to);
+  if (senderSocketId) {
+    io.to(senderSocketId).emit("messages_seen", { by: userId });
+  }
+});
   
     // ✅ Clear a specific user's active chats
     socket.on('disconnect', () => {

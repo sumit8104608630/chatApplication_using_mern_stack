@@ -312,6 +312,8 @@ const handleGroupClick=(groupInfo)=>{
     setMessage((prev) => ({ ...prev, message: e.target.value }));
   };
 
+
+
   const handleSendMessage = () => {
     try {
 
@@ -337,7 +339,9 @@ const handleGroupClick=(groupInfo)=>{
           (item.authUserId === activeContact?._id && item.selectedId === authUser?._id) &&
           !(item.authUserId === authUser?._id && item.selectedId === activeContact?._id)
       );
-        if (seen_bool) {
+      //&& activeContact?._id === contact.userId._id
+      console.log(activeContact?._id)
+        if (seen_bool ) {
         //  clear_notification(activeContact?._id)
 
           message["status"] = "seen";
@@ -669,11 +673,11 @@ useEffect(() => {
 
 useEffect(() => {
   if (myStream) {
-    console.log("Local stream tracks:", myStream.getTracks().map(t => ({
-      kind: t.kind,
-      enabled: t.enabled,
-      readyState: t.readyState
-    })));
+    // console.log("Local stream tracks:", myStream.getTracks().map(t => ({
+    //   kind: t.kind,
+    //   enabled: t.enabled,
+    //   readyState: t.readyState
+    // })));
   }
   
   if (remoteStream) {
