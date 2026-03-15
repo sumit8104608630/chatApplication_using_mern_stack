@@ -125,24 +125,24 @@ socket.on("lastScene", (userId) => {
     });
 
  // In socket.on("connection")
-socket.on("call-user", ({ to, from,offer }) => {
-    const receiverSocket=getOnlineUserIds(to)
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("incoming-call", {
-        from,
-        to,
-        offer 
-      });
-    }
-  });
+socket.on("call-user", ({ to, from, offer }) => {
+  const receiverSocket = getOnlineUserIds(to)  // ✅ looks up callee's socket ID
+  if (receiverSocket) {
+    io.to(receiverSocket).emit("incoming-call", {  // ✅ sends only to callee
+      from,   // ✅ callee needs this to know who's calling
+      to,     // ✅ callee needs this to route the answer back
+      offer   // ✅ SDP offer forwarded untouched
+    });
+  }
+});
    
       
-  socket.on("accept-call", ({from, to ,answer}) => {
-    const callerSocket = getOnlineUserIds(to);
-    if (callerSocket) {
-      io.to(callerSocket).emit("call-accepted",{answer});
-    }
-  });
+socket.on("accept-call", ({ from, to, answer }) => {   // ← server expects "accept-call"
+  const callerSocket = getOnlineUserIds(to);
+  if (callerSocket) {
+    io.to(callerSocket).emit("call-accepted", { answer });
+  }
+});
   
     
   socket.on("decline", ({ to }) => {
@@ -168,15 +168,16 @@ socket.on("call-user", ({ to, from,offer }) => {
     }
   });
 
-  socket.on("endCall",({to,from})=>{
-    const targetId=getOnlineUserIds(to);
-    if(targetId){
-        io.to(targetId).emit("endCall",{
-            to,
-            from
-        })
-    }
-  })
+// ✅ FIXED
+socket.on("endCall", ({ to, from }) => {
+  const targetId = getOnlineUserIds(to);
+  if (targetId) {
+    io.to(targetId).emit("endCall", {
+      to,    // ✅ receiver IS the `to` person, so this check works
+      from
+    });
+  }
+});
 
 //let' create real time block and un block  function
 socket.on("messages_seen", ({ to }) => {

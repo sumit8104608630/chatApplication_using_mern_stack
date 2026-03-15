@@ -38,8 +38,8 @@ const ChatHomePage = () => {
   })
   const [ShowMenu,setShowMenu]=useState(null)
   const [incomingCall,setIncoming]=useState(false)
-  const { peer, createOffer, create_answer, setRemoteAnswer, sendStream, setActiveCallTarget, remoteStream } = usePeer();
-    const [message, setMessage] = useState({
+// ✅ CORRECT — match exactly what PeerContext exports
+const { createOffer, createAnswer, setAnswer, remoteStream } = usePeer();    const [message, setMessage] = useState({
     receiverId: "",
     message: "",
     status: "",
@@ -503,125 +503,108 @@ const handleGroupClick=(groupInfo)=>{
 
   const [myStream, setMyStream] = useState(null);
 
-    const getUserMediaStream = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      setMyStream(stream);
-    } catch (error) {
-      console.error("Error getting user media:", error);
-    }
-  }, []);
-  
-  useEffect(() => {
-    getUserMediaStream();
-  }, [getUserMediaStream]);
+
   
   // Make a call to another user
-  const handleCall = useCallback(async (to, from) => {
-    if (!calling) {
-      try {
-        // Set active call target for ICE candidates
-        setActiveCallTarget(to._id);
-        
-        // Get media first
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        setMyStream(stream);
-        
-        // Pass stream to createOffer
-        const offer = await createOffer(stream);
-        
-        socket.emit("call-user", {
-          to: to._id,
-          from: from,
-          offer
-        });
-        
-        to.from = from._id;
-        setCalling(to);
-      } catch (error) {
-        console.error("Error making call:", error);
-      }
-    }
-  }, [calling, createOffer, socket, setActiveCallTarget]);
-  
+// ✅ REPLACE with this
+const handleCall = useCallback(async (to) => {
+  if (calling) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    setMyStream(stream);
+
+    const offer = await createOffer(stream, to._id);
+
+    socket.emit("call-user", { to: to._id, from: authUser, offer });
+
+    setCalling({
+      ...to,
+      name: to.name || to.fullName || to.username || to.phone || "Unknown",
+      from: authUser._id,
+    });
+  } catch (error) {
+    console.error("Error making call:", error);
+  }
+}, [calling, createOffer, socket, authUser]);
+
+
+
   // Handle incoming calls
   const [callOn,setOn]=useState(false)
+// ✅ CORRECT — add dependencies so setAnswer is always fresh
+useEffect(() => {
+  socket.on("incoming-call", ({ from, to, offer }) => {
+    if (to === authUser._id) {
+      from.offer = offer;
+      setIncoming(from);
+    }
+  });
 
-  useEffect(() => {
-    socket.on("incoming-call", ({ from, to, offer }) => {
-      if (to === authUser._id) {
-        console.log("Incoming call received", offer);
-        from.offer = offer;
-        setIncoming(from);
-      }
-    });
-    socket.on("call-accepted", async ({ answer }) => {
-      console.log("Call accepted, connecting...", answer);
-      await setRemoteAnswer(answer);
-      
-      // Send our stream to the other person
-      if (myStream) {
-        await sendStream(myStream);
-        setOn(true)
-      }
-    });
-    
-    return () => {
-      socket.off("incoming-call");
-      socket.off("call-accepted");
-    };
-  }, [socket, authUser, setRemoteAnswer, myStream, sendStream]);
-  
+  socket.on("call-accepted", async ({ answer }) => {
+    await setAnswer(answer);
+    setOn(true);
+  });
+
+  return () => {
+    socket.off("incoming-call");
+    socket.off("call-accepted");
+  };
+}, [socket, setAnswer, authUser._id]);  // ✅ proper deps
   // Handle ended calls
-  useEffect(() => {
-    socket.on("endCall", ({ to }) => {
-      if (to === authUser?._id) {
-        setIncoming(null);
-        setCalling(null);
-        console.log("Call ended");
-      }
-    });
-    
-    socket.on("decline", ({ to }) => {
-      if (to === authUser._id) {
-        console.log("Call declined");
-        setCalling(null);
-      }
-    });
-    
-    return () => {
-      socket.off("endCall");
-      socket.off("decline");
-    };
-  }, [socket, authUser]);
+useEffect(() => {
+  const onEnd = () => {
+    // server already routed to correct socket — no if check needed
+    myStream?.getTracks().forEach(t => t.stop());
+    setMyStream(null);
+    setIncoming(null);
+    setCalling(null);
+    setOn(false);
+    console.log("[endCall] remote ended call");
+  };
+
+  const onDecline = () => {
+    myStream?.getTracks().forEach(t => t.stop());
+    setMyStream(null);
+    setCalling(null);
+    setOn(false);
+    console.log("[decline] call declined");
+  };
+
+  socket.on("endCall", onEnd);
+  socket.on("decline", onDecline);
+
+  return () => {
+    socket.off("endCall", onEnd);
+    socket.off("decline", onDecline);
+  };
+}, [socket, myStream]);
   
   // Handle accepting an incoming call
   
 // When accepting a call:
+// ✅ CORRECT
+// ✅ CORRECT — also show the active call screen for the callee
+// ✅ REPLACE with this
 const acceptIncomingCall = async () => {
   try {
-    // Set active call target for ICE candidates
-    setActiveCallTarget(incomingCall._id);
-    
-    // Get media first if not already obtained
-    if (!myStream) {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      setMyStream(stream);
-    }
-    
-    // Pass stream to create_answer
-    const answer = await create_answer(incomingCall.offer, myStream);
-    
-    socket.emit("accept-call", {
-      from: authUser._id,
-      to: incomingCall._id,
-      answer
+    // always fresh — never reuse stale myStream
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    setMyStream(stream);
+
+    const answer = await createAnswer(incomingCall.offer, stream, incomingCall._id);
+
+    socket.emit("accept-call", { to: incomingCall._id, from: authUser, answer });
+
+    setCalling({
+      ...incomingCall,
+      name: incomingCall.name || incomingCall.fullName || incomingCall.username || incomingCall.phone || "Unknown",
     });
+    setOn(true);
+    setIncoming(null);
   } catch (error) {
     console.error("Error accepting call:", error);
   }
 };
-  
   // Reject an incoming call
   const rejectCall = () => {
     socket.emit("decline", {
@@ -632,54 +615,24 @@ const acceptIncomingCall = async () => {
   };
   
   // End an active call
-  const endCall = () => {
-    socket.emit("endCall", {
-      to: calling._id,
-      from: calling.from || authUser._id
-    });
-    setCalling(null);
-    setOn(false)
-  };
-
-
-
-
-
-
-
-
-// In your main component where socket events are handled
-useEffect(() => {
-  // Existing socket event handlers...
-  
-  // Add ICE candidate handling
-  socket.on("ice-candidate", async ({ candidate }) => {
-    try {
-      if (candidate) {
-        await peer?.addIceCandidate(new RTCIceCandidate(candidate));
-        console.log("Added ICE candidate");
-      }
-    } catch (error) {
-      console.error("Error adding ICE candidate:", error);
-    }
+const endCall = () => {
+  console.log("yes")
+  if (!calling) return;
+  socket.emit("endCall", {
+    to: calling._id,
+    from: calling.from || authUser._id,
   });
-  
-  return () => {
-    // Existing socket event cleanup...
-    socket.off("ice-candidate");
-  };
-}, [socket, peer]);
+  myStream?.getTracks().forEach(t => t.stop()); // ✅ release mic
+  setMyStream(null);
+  setCalling(null);
+  setOn(false);
+};
+
+
 
 
 useEffect(() => {
-  if (myStream) {
-    // console.log("Local stream tracks:", myStream.getTracks().map(t => ({
-    //   kind: t.kind,
-    //   enabled: t.enabled,
-    //   readyState: t.readyState
-    // })));
-  }
-  
+
   if (remoteStream) {
     console.log("Remote stream tracks:", remoteStream.getTracks().map(t => ({
       kind: t.kind,
@@ -691,22 +644,7 @@ useEffect(() => {
 
 
 // Add this to your component where you handle socket events
-useEffect(() => {
-  socket.on("ice-candidate", async ({ candidate }) => {
-    try {
-      if (candidate && peer?.remoteDescription) {
-        await peer?.addIceCandidate(new RTCIceCandidate(candidate));
-        console.log("Added ICE candidate");
-      }
-    } catch (error) {
-      console.error("Error adding ICE candidate:", error);
-    }
-  });
-  
-  return () => {
-    socket.off("ice-candidate");
-  };
-}, [socket, peer]);
+
 
 
 
@@ -948,22 +886,28 @@ const handleOutsideClick = () => {
 </div>}
 </>
 
-{incomingCall && (
-        <VoiceCall 
-        acceptIncomingCall={acceptIncomingCall}
-          incomingCall={incomingCall}
-          rejectCall={rejectCall}
-          createOffer={create_answer} // Use create_answer from PeerContext
-        />
-      )}
+{incomingCall && !callOn && (
+  <VoiceCall 
+    incomingCall={incomingCall}
+    acceptIncomingCall={acceptIncomingCall}
+    rejectCall={rejectCall}
+    callActive={callOn}
+    onEndCall={endCall}
+    onToggleMute={() => {
+      if (myStream) {
+        myStream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
+      }
+    }}
+  />
+)}
 {calling && (
-        <CallerInterface 
-        callOn={callOn}
-          callData={calling}
-          endCall={endCall}
-          localStream={myStream}
-        />
-      )}
+  <CallerInterface 
+    callOn={callOn}
+    callData={calling}
+    endCall={endCall}
+    localStream={myStream}
+  />
+)}
 
 
 
