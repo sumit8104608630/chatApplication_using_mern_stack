@@ -17,12 +17,160 @@ import {
   Smile, 
   Send,
   Phone,
-  Video
+  Video,
+  Forward,
+  Search,
 } from 'lucide-react';
 import DropDownMenu from './DropDownMenu';
 import ViewProfile from '../pages/ViewProfilePage';
 import { messageStore } from '../store/message.store';
 
+// ── Forward Message Popup ────────────────────────────────────────────────────
+const ForwardMessagePopup = ({ message, contacts, onForward, onClose }) => {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState([]);
+
+  const filtered = contacts.filter(c => {
+    const name = c.name || c.userId?.name || c.phone || '';
+    return name.toLowerCase().includes(search.toLowerCase());
+  });
+
+  const toggleSelect = (id) => {
+    setSelected(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#1e2530] w-full max-w-sm mx-4 rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-gray-700">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-700">
+          <div className="flex items-center gap-2">
+            <Forward className="h-5 w-5 text-teal-400" />
+            <h2 className="text-white font-semibold text-base">Forward message</h2>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Message preview */}
+        <div className="px-4 py-3 border-b border-gray-700">
+          <div className="bg-gray-800 rounded-lg px-3 py-2">
+            <p className="text-gray-400 text-xs mb-1">Forwarding:</p>
+            {message?.image && message.image.match(/\.(jpeg|jpg|gif|png)$/) ? (
+              <img src={message.image} alt="forward preview" className="h-16 rounded object-cover" />
+            ) : message?.video ? (
+              <p className="text-gray-300 text-sm">📹 Video</p>
+            ) : message?.file ? (
+              <p className="text-gray-300 text-sm">📎 File</p>
+            ) : (
+              <p className="text-gray-300 text-sm truncate">{message?.text || '—'}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="px-4 py-3 border-b border-gray-700">
+          <div className="flex items-center bg-gray-800 rounded-lg px-3 py-2 gap-2">
+            <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search contacts..."
+              className="bg-transparent text-white text-sm focus:outline-none flex-1 placeholder-gray-500"
+            />
+          </div>
+        </div>
+
+        {/* Contacts list */}
+        <div className="flex-1 overflow-y-auto max-h-64">
+          {filtered.length === 0 ? (
+            <p className="text-gray-500 text-sm text-center py-8">No contacts found</p>
+          ) : (
+            filtered.map(contact => {
+              const id    = contact.userId?._id || contact._id;
+              const name  = contact.name || contact.userId?.name || contact.phone || 'Unknown';
+              const photo = contact.userId?.profilePhoto;
+              const isSelected = selected.includes(id);
+
+              return (
+                <div
+                  key={id}
+                  onClick={() => toggleSelect(id)}
+                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                    isSelected ? 'bg-teal-500/10' : 'hover:bg-gray-800'
+                  }`}
+                >
+                  {/* Avatar */}
+                  <div className="relative flex-shrink-0">
+                    {photo ? (
+                      <img src={photo} alt={name} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-teal-700 flex items-center justify-center text-white font-semibold">
+                        {name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {/* Checkmark overlay */}
+                    {isSelected && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  <span className="text-white text-sm flex-1 truncate">{name}</span>
+
+                  {/* Radio circle */}
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isSelected ? 'border-teal-500 bg-teal-500' : 'border-gray-500'
+                  }`}>
+                    {isSelected && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-4 border-t border-gray-700 flex items-center justify-between gap-3">
+          <p className="text-gray-400 text-xs">
+            {selected.length > 0 ? `${selected.length} selected` : 'Select contacts'}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { onForward(selected, message); onClose(); }}
+              disabled={selected.length === 0}
+              className="px-4 py-2 text-sm bg-teal-500 hover:bg-teal-400 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Forward className="h-4 w-4" />
+              Forward
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+// ── ChatContainer ────────────────────────────────────────────────────────────
 const ChatContainer = ({
   showContactsOnMobile,
   activeContact,
@@ -61,11 +209,16 @@ const ChatContainer = ({
   setShowFilePopup,
 }) => {
 
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const emojiPickerRef  = useRef(null);
-  const [toggleViewProfile, setToggle] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const [showEmojiPicker,   setShowEmojiPicker]   = useState(false);
+  const [toggleViewProfile, setToggle]             = useState(false);
+  const [isOpen,            setIsOpen]             = useState(false);
+
+  // ── Forward popup state ──────────────────────────────────────────────────
+  const [forwardPopup,      setForwardPopup]       = useState(false);
+  const [forwardMessage,    setForwardMsg]          = useState(null);
+
+  const emojiPickerRef = useRef(null);
+  const dropdownRef    = useRef(null);
   const { delete_message, subScribe, unSubScribe, unBlockUser } = messageStore();
 
   const commonEmojis = [
@@ -102,16 +255,34 @@ const ChatContainer = ({
   const handleViewProfile = () => setToggle(true);
   const deleteChat        = (id) => delete_message({ receiverId: id });
 
-  const handleVoiceCall = (contact) => {
-    console.log('Voice call clicked', contact);
+  const handleVoiceCall = (contact) => { console.log('Voice call clicked', contact); };
+  const handleVideoCall = (contact) => { console.log('Video call clicked', contact); };
+
+  // ── Open forward popup — called from DropDownMenu ────────────────────────
+  const openForwardPopup = (msg) => {
+    setForwardMsg(msg);
+    setForwardPopup(true);
+    setActiveMenuId(null);
   };
 
-  const handleVideoCall = (contact) => {
-    console.log('Video call clicked', contact);
+  // ── Actually send forward — wire up to your store/API as needed ──────────
+  const handleForward = (recipientIds, msg) => {
+    console.log('Forwarding message', msg, 'to', recipientIds);
+    handleForwardMessage(recipientIds, msg); // pass up to parent if needed
   };
 
   return (
     <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
+
+      {/* ── Forward message popup ── */}
+      {forwardPopup && (
+        <ForwardMessagePopup
+          message={forwardMessage}
+          contacts={contacts}
+          onForward={handleForward}
+          onClose={() => { setForwardPopup(false); setForwardMsg(null); }}
+        />
+      )}
 
       {activeContact ? (
         <>
@@ -229,7 +400,15 @@ const ChatContainer = ({
                             </div>
                           )}
                           {activeMenuId === message.id && message.isOwn && (
-                            <DropDownMenu message={message} showMenu={ShowMenu} setShowMenu={setShowMenu} setActiveMenuId={setActiveMenuId} handleForwardMessage={handleForwardMessage} handleDeleteMessage={handleDeleteMessage} activeContactId={activeContact._id} />
+                            <DropDownMenu
+                              message={message}
+                              showMenu={ShowMenu}
+                              setShowMenu={setShowMenu}
+                              setActiveMenuId={setActiveMenuId}
+                              handleForwardMessage={() => openForwardPopup(message)}
+                              handleDeleteMessage={handleDeleteMessage}
+                              activeContactId={activeContact._id}
+                            />
                           )}
                         </div>
 
@@ -294,7 +473,15 @@ const ChatContainer = ({
                               </div>
                             )}
                             {activeMenuId === message.id && (
-                              <DropDownMenu message={message} showMenu={ShowMenu} setShowMenu={setShowMenu} setActiveMenuId={setActiveMenuId} handleForwardMessage={handleForwardMessage} handleDeleteMessage={handleDeleteMessage} activeContactId={activeContact._id} />
+                              <DropDownMenu
+                                message={message}
+                                showMenu={ShowMenu}
+                                setShowMenu={setShowMenu}
+                                setActiveMenuId={setActiveMenuId}
+                                handleForwardMessage={() => openForwardPopup(message)}
+                                handleDeleteMessage={handleDeleteMessage}
+                                activeContactId={activeContact._id}
+                              />
                             )}
                           </div>
                         )}
