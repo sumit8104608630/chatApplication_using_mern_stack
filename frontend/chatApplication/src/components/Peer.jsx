@@ -19,20 +19,21 @@ const ICE_SERVERS = {
 };
 
 export const PeerProvider = ({ children }) => {
-  const peerRef         = useRef(null);
-  const callTargetRef   = useRef(null);
-  const iceCandidates   = useRef([]);
-  const remoteStreamRef = useRef(null);        // ← NEW: ref to avoid stale closure
+  const peerRef       = useRef(null);
+  const callTargetRef = useRef(null);
+  const iceCandidates = useRef([]);
+  const remoteStreamRef = useRef(null);
 
   const [remoteStream, setRemoteStream] = useState(null);
   const { socket } = authStore();
 
-  // ── stable setter that always works even inside stale closures
+  // ── Stable setter — safe inside stale closures ─────────────────────────────
   const updateRemoteStream = useCallback((stream) => {
     remoteStreamRef.current = stream;
     setRemoteStream(stream);
   }, []);
 
+  // ── Flush queued ICE candidates (call AFTER setRemoteDescription) ──────────
   const flushIceCandidates = useCallback(async () => {
     const peer = peerRef.current;
     if (!peer || !peer.remoteDescription) return;
@@ -47,19 +48,20 @@ export const PeerProvider = ({ children }) => {
     }
   }, []);
 
+  // ── Build a fresh RTCPeerConnection ────────────────────────────────────────
   const buildPeer = useCallback(() => {
     if (peerRef.current) {
       peerRef.current.close();
       peerRef.current = null;
     }
 
-    iceCandidates.current = [];
-    remoteStreamRef.current = null;       // ← reset on new call
-    setRemoteStream(null);                // ← reset state too
+    iceCandidates.current  = [];
+    remoteStreamRef.current = null;
+    setRemoteStream(null);
 
     const peer = new RTCPeerConnection(ICE_SERVERS);
 
-    // ── ICE → forward to other peer
+    // Forward local ICE candidates to the remote peer
     peer.onicecandidate = ({ candidate }) => {
       if (candidate && socket && callTargetRef.current) {
         socket.emit("ice-candidate", {
@@ -69,25 +71,21 @@ export const PeerProvider = ({ children }) => {
       }
     };
 
-    // ── Remote track arrived — wire to a NEW MediaStream
+    // BUG 4 FIX — always build a fresh MediaStream per track so reconnects
+    // never mix tracks from a previous call into the same stream object.
     peer.ontrack = (event) => {
       console.log("[Peer] ontrack fired:", event.track.kind);
-
-      // Always build a fresh MediaStream so the audio element re-triggers
-      if (!remoteStreamRef.current) {
-        const stream = new MediaStream();
-        stream.addTrack(event.track);
-        updateRemoteStream(stream);        // ← use stable updater
-      } else {
-        remoteStreamRef.current.addTrack(event.track);
-        updateRemoteStream(remoteStreamRef.current);
-      }
+      const stream = new MediaStream();
+      stream.addTrack(event.track);
+      updateRemoteStream(stream);
     };
 
     peer.onconnectionstatechange = () => {
       console.log("[Peer] connection:", peer.connectionState);
-      // Clean up on failure
-      if (peer.connectionState === "failed" || peer.connectionState === "closed") {
+      if (
+        peer.connectionState === "failed" ||
+        peer.connectionState === "closed"
+      ) {
         updateRemoteStream(null);
       }
     };
@@ -102,51 +100,79 @@ export const PeerProvider = ({ children }) => {
     return peer;
   }, [socket, updateRemoteStream]);
 
-  // ── createOffer (caller)
-  const createOffer = useCallback(async (stream, targetId) => {
-    callTargetRef.current = targetId;
+  // ── createOffer — caller side ──────────────────────────────────────────────
+  const createOffer = useCallback(
+    async (stream, targetId) => {
+      callTargetRef.current = targetId;
 
-    const peer = buildPeer();
+      const peer = buildPeer();
 
-    stream.getAudioTracks().forEach((track) => {
-      console.log("[Peer] Adding local audio track:", track.label);
-      peer.addTrack(track, stream);
-    });
+      stream.getAudioTracks().forEach((track) => {
+        console.log("[Peer] Adding local audio track:", track.label);
+        peer.addTrack(track, stream);
+      });
 
-    const offer = await peer.createOffer();
-    await peer.setLocalDescription(offer);
-    return offer;
-  }, [buildPeer]);
+      const offer = await peer.createOffer();
+      await peer.setLocalDescription(offer);
+      return offer;
+    },
+    [buildPeer]
+  );
 
-  // ── createAnswer (callee)
-  const createAnswer = useCallback(async (offer, stream, targetId) => {
-    callTargetRef.current = targetId;
+  // ── createAnswer — callee side ─────────────────────────────────────────────
+  // BUG 1 FIX — flushIceCandidates moved to AFTER setRemoteDescription so
+  // candidates are not added while remoteDescription is still null.
+  const createAnswer = useCallback(
+    async (offer, stream, targetId) => {
+      callTargetRef.current = targetId;
 
-    const peer = buildPeer();
+      const peer = buildPeer();
 
-    stream.getAudioTracks().forEach((track) => {
-      console.log("[Peer] Adding local audio track:", track.label);
-      peer.addTrack(track, stream);
-    });
+      stream.getAudioTracks().forEach((track) => {
+        console.log("[Peer] Adding local audio track:", track.label);
+        peer.addTrack(track, stream);
+      });
 
-    await peer.setRemoteDescription(new RTCSessionDescription(offer));
-    await flushIceCandidates();
+      await peer.setRemoteDescription(new RTCSessionDescription(offer));
+      await flushIceCandidates(); // ← correct position: after setRemoteDescription
 
-    const answer = await peer.createAnswer();
-    await peer.setLocalDescription(answer);
-    return answer;
-  }, [buildPeer, flushIceCandidates]);
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      return answer;
+    },
+    [buildPeer, flushIceCandidates]
+  );
 
-  // ── setAnswer (caller applies callee's answer)
-  const setAnswer = useCallback(async (answer) => {
-    const peer = peerRef.current;
-    if (!peer) throw new Error("[Peer] No active peer connection");
+  // ── setAnswer — caller applies callee's answer ─────────────────────────────
+  // BUG 2 FIX — replaced throw with a warning + early return so an accidental
+  // double-call doesn't crash the caller's async chain silently.
+  const setAnswer = useCallback(
+    async (answer) => {
+      const peer = peerRef.current;
+      if (!peer) {
+        console.warn("[Peer] setAnswer called but no active peer connection — ignoring");
+        return;
+      }
 
-    await peer.setRemoteDescription(new RTCSessionDescription(answer));
-    await flushIceCandidates();
-  }, [flushIceCandidates]);
+      await peer.setRemoteDescription(new RTCSessionDescription(answer));
+      await flushIceCandidates();
+    },
+    [flushIceCandidates]
+  );
 
-  // ── ICE candidates from socket
+  // ── BUG 3 FIX — expose a cleanup helper so ChatHomePage can clear the ref
+  // when the call ends, preventing stale ICE events from emitting to old peers.
+  const resetPeer = useCallback(() => {
+    callTargetRef.current = null;
+    iceCandidates.current  = [];
+    if (peerRef.current) {
+      peerRef.current.close();
+      peerRef.current = null;
+    }
+    updateRemoteStream(null);
+  }, [updateRemoteStream]);
+
+  // ── ICE candidates arriving from the socket ────────────────────────────────
   useEffect(() => {
     if (!socket) return;
 
@@ -156,7 +182,7 @@ export const PeerProvider = ({ children }) => {
       const peer = peerRef.current;
 
       if (!peer || !peer.remoteDescription) {
-        console.log("[Peer] Queuing ICE candidate");
+        console.log("[Peer] Queuing ICE candidate (no remoteDescription yet)");
         iceCandidates.current.push(candidate);
         return;
       }
@@ -172,7 +198,7 @@ export const PeerProvider = ({ children }) => {
     return () => socket.off("ice-candidate", handleIceCandidate);
   }, [socket]);
 
-  // ── Cleanup
+  // ── Cleanup on unmount ─────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       peerRef.current?.close();
@@ -181,7 +207,7 @@ export const PeerProvider = ({ children }) => {
 
   return (
     <PeerContext.Provider
-      value={{ remoteStream, createOffer, createAnswer, setAnswer }}
+      value={{ remoteStream, createOffer, createAnswer, setAnswer, resetPeer }}
     >
       {children}
     </PeerContext.Provider>

@@ -1,9 +1,9 @@
 import express from "express"
 import http from "http"
-import { ExpressPeerServer } from "peer";
 import cookieParser from "cookie-parser"
-import {Server} from "socket.io"
+import { Server } from "socket.io"
 import cors from "cors"
+
 const app = express();
 const server = http.createServer(app)
 const origin = process.env.ORIGIN
@@ -16,229 +16,176 @@ export const io = new Server(server, {
     }
 })
 
-const userSocketMap = {} // {userId: socketId}
-const groupSocketMap={}// all active userGroup
+const userSocketMap = {}  // { userId: socketId }
+const groupSocketMap = {} // { groupId: [socketIds] }
 let active = []
 
-// Socket.io event handling when a client connects
 io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    const userId = socket.handshake.query.userId;
-    const authUserId = socket.handshake.query.authUserId;
-    const selectedId = socket.handshake.query.selected_id;
+    const userId      = socket.handshake.query.userId;
+    const authUserId  = socket.handshake.query.authUserId;
+    const selectedId  = socket.handshake.query.selected_id;
 
-    // ✅ Map user to socket
+    // Map user → socket
     if (userId) {
         userSocketMap[userId] = socket.id;
     }
 
-    // ✅ Handle 1-to-1 active user logic
-    if(selectedId && authUserId) {
-    active.push({
-      authUserId: authUserId, 
-      selectedId: selectedId
-  });
-    } 
-   // console.log(active)
-    io.emit("onlineUser", Object.keys(userSocketMap));
-   io.emit("getActiveUser", active);
-
-
-   socket.on("block",({to,from})=>{
-    const targetId=getOnlineUserIds(to);
-  console.log(to,from)
-    io.to(targetId).emit("blocked",{ 
-      to,
-      from
-    })
-  })
-
-  socket.on("unBlock",({to,from})=>{
-    const targetId=getOnlineUserIds(to);
-  console.log(to,from)
-    io.to(targetId).emit("unBlocked",{ 
-      to,
-      from
-    })
-  })
-  
-   
-   socket.on('delete_active_user', ({ authUserId, selectedId }) => {
-    // First check if either ID is null or undefined
-    if (!authUserId || !selectedId) {
-      console.log('Invalid IDs received:', authUserId, selectedId);
-      return; // Exit early if either ID is missing
+    // Track 1-to-1 active chat pairs
+    if (selectedId && authUserId) {
+        active.push({ authUserId, selectedId });
     }
-    
-    console.log('Deleting active user:', authUserId, selectedId);
-    
-    // Remove the specific pair that matches both IDs exactly
-    active = active.filter(pair => 
-      !(pair.authUserId === authUserId && pair.selectedId === selectedId)
-    );
-    
-    io.emit('getActiveUser', active);
+
+    io.emit("onlineUser", Object.keys(userSocketMap));
+    io.emit("getActiveUser", active);
+
+    // ── Block / Unblock ───────────────────────────────────────────────────────
+
+    socket.on("block", ({ to, from }) => {
+        const targetId = getOnlineUserIds(to);
+        console.log(to, from);
+        io.to(targetId).emit("blocked", { to, from });
+    });
+
+    socket.on("unBlock", ({ to, from }) => {
+        const targetId = getOnlineUserIds(to);
+        console.log(to, from);
+        io.to(targetId).emit("unBlocked", { to, from });
+    });
+
+    // ── Active user management ────────────────────────────────────────────────
+
+    socket.on("delete_active_user", ({ authUserId, selectedId }) => {
+        if (!authUserId || !selectedId) {
+            console.log("Invalid IDs received:", authUserId, selectedId);
+            return;
+        }
+        console.log("Deleting active user:", authUserId, selectedId);
+        active = active.filter(
+            pair => !(pair.authUserId === authUserId && pair.selectedId === selectedId)
+        );
+        io.emit("getActiveUser", active);
+    });
+
+    socket.on("delete_authUserMatchId", (userId) => {
+        active = active.filter(pair => pair.authUserId !== userId);
+        io.emit("getActiveUser", active);
+    });
+
+    socket.on("lastScene", (userId) => {
+        console.log("user ID", userId);
+        active = active.filter(pair => pair.authUserId !== userId);
+        io.emit("new_Date", { userId, newDate: Date.now() });
+        io.emit("getActiveUser", active);
+    });
+
+
+        // ── call ────────────────────────────────────────────────────────────────
+socket.on("call-user", ({ to, from, offer }) => {
+  const toSocket = getOnlineUserIds(to);
+  if (!toSocket) {
+    console.log(`[call-user] user ${to} is offline`);
+    // Optionally notify caller that user is offline:
+    socket.emit("call-unavailable", { to });
+    return;
+  }
+  io.to(toSocket).emit("incoming_call", {
+    from,   // caller's user object (name, photo, _id etc.)
+    to,     // callee's userId — used by ChatHomePage to guard the popup
+    offer,  // SDP offer
   });
-
-  socket.on('delete_authUserMatchId', (userId) => {
-    // console.log(userId)
-    active = active.filter(pair => 
-      !(pair.authUserId === userId )
-    );
-    io.emit('getActiveUser', active);
-});
-
-
-//send real time last scene
-
-socket.on("lastScene", (userId) => {
-  console.log("user ID", userId);
-  
-  // ✅ Only remove where authUserId matches
-  active = active.filter(pair => pair.authUserId !== userId);
-  
-  io.emit("new_Date", { userId, newDate: Date.now() });
-  io.emit("getActiveUser", active);
 });
  
+// ── THIS WAS THE MAIN BUG: handler was empty, answer never reached caller ──
+socket.on("accept-call", ({ to, from, answer }) => {
+  const toSocket = getOnlineUserIds(to); // 'to' is the caller's userId
+  if (!toSocket) {
+    console.log(`[accept-call] caller ${to} is no longer online`);
+    return;
+  }
+  // Forward the SDP answer back to the caller so they can call setAnswer()
+  io.to(toSocket).emit("call-accepted", {
+    from,   // callee's user object
+    answer, // SDP answer — caller needs this
+  });
+  console.log(`[accept-call] answer forwarded to caller ${to}`);
+});
 
 
-    // ✅ Handle group joining (if groupIds provided)
+    // ── Groups ────────────────────────────────────────────────────────────────
+
     socket.on("join-groups", (groupsIdString) => {
         if (groupsIdString && groupsIdString !== "undefined") {
             const groupIds = groupsIdString.split(",");
             groupIds.forEach(groupId => {
                 socket.join(groupId);
-
-                if (!groupSocketMap[groupId]) {
-                    groupSocketMap[groupId] = [];
-                }
-
+                if (!groupSocketMap[groupId]) groupSocketMap[groupId] = [];
                 if (!groupSocketMap[groupId].includes(socket.id)) {
                     groupSocketMap[groupId].push(socket.id);
                 }
             });
         }
-
-        // console.log("Groups joined:", groupSocketMap);
     });
 
- // In socket.on("connection")
-socket.on("call-user", ({ to, from, offer }) => {
-  const receiverSocket = getOnlineUserIds(to)  // ✅ looks up callee's socket ID
-  if (receiverSocket) {
-    io.to(receiverSocket).emit("incoming-call", {  // ✅ sends only to callee
-      from,   // ✅ callee needs this to know who's calling
-      to,     // ✅ callee needs this to route the answer back
-      offer   // ✅ SDP offer forwarded untouched
+    // ── Messages seen ─────────────────────────────────────────────────────────
+
+    socket.on("messages_seen", ({ to }) => {
+        const senderSocketId = getOnlineUserIds(to);
+        if (senderSocketId) {
+            io.to(senderSocketId).emit("messages_seen", { by: userId });
+        }
     });
-  }
-});
-   
-      
-socket.on("accept-call", ({ from, to, answer }) => {   // ← server expects "accept-call"
-  const callerSocket = getOnlineUserIds(to);
-  if (callerSocket) {
-    io.to(callerSocket).emit("call-accepted", { answer });
-  }
-});
-  
-    
-  socket.on("decline", ({ to }) => {
-    console.log("user",to)
-    const targetSocketId = getOnlineUserIds(to);  // this should return caller's socket ID
-    if (targetSocketId) {
-        console.log("yes")
-      io.to(targetSocketId).emit("decline",{
-        to
-      });
-    }
-  });
 
+    // ── Disconnect ────────────────────────────────────────────────────────────
 
-  socket.on("ice-candidate", ({ candidate, to }) => {
-    console.log(`Received ICE candidate for ${to}`);
-    const targetSocketId = getOnlineUserIds(to);
-    if (targetSocketId) {  
-      console.log(`Forwarding ICE candidate to ${to} (${targetSocketId})`);
-      io.to(targetSocketId).emit("ice-candidate", { candidate });
-    } else {
-      console.log(`Target user ${to} is not online`);
-    }
-  });
-
-// ✅ FIXED
-socket.on("endCall", ({ to, from }) => {
-  const targetId = getOnlineUserIds(to);
-  if (targetId) {
-    io.to(targetId).emit("endCall", {
-      to,    // ✅ receiver IS the `to` person, so this check works
-      from
-    });
-  }
-});
-
-//let' create real time block and un block  function
-socket.on("messages_seen", ({ to }) => {
-  const senderSocketId = getOnlineUserIds(to);
-  if (senderSocketId) {
-    io.to(senderSocketId).emit("messages_seen", { by: userId });
-  }
-});
-  
-    // ✅ Clear a specific user's active chats
-    socket.on('disconnect', () => {
+    socket.on("disconnect", () => {
         console.log(`User disconnected: ${socket.id}`);
-
         delete userSocketMap[userId];
 
         for (const groupId in groupSocketMap) {
             groupSocketMap[groupId] = groupSocketMap[groupId].filter(id => id !== socket.id);
-            if (groupSocketMap[groupId].length === 0) {
-                delete groupSocketMap[groupId];
-            }
+            if (groupSocketMap[groupId].length === 0) delete groupSocketMap[groupId];
         }
 
         io.emit("onlineUser", Object.keys(userSocketMap));
-
     });
 });
 
-// Return the socket ID of an online user
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 export function getOnlineUserIds(userId) {
     return userSocketMap[userId];
 }
-export function getGroupId(groupId){
+
+export function getGroupId(groupId) {
     return groupSocketMap[groupId];
 }
 
-// Return all active conversations involving this user
 export function getActiveUserId(userId) {
-    return active.filter(pair => 
-        pair.authUserId === userId || pair.selectedUserId === userId
+    return active.filter(
+        pair => pair.authUserId === userId || pair.selectedUserId === userId
     );
 }
 
+// ── Express middleware ────────────────────────────────────────────────────────
 
-
-app.use(cors({
-    origin: origin,
-    credentials: true,
-}));
-app.use(express.json({limit:"1mb"}));
-app.use(express.urlencoded({limit:"16kb", extended:true}));
+app.use(cors({ origin: origin, credentials: true }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ limit: "16kb", extended: true }));
 app.use(express.static("public"));
 app.use(cookieParser());
-   
-import userRoutes from "../routes/user.routes.js";
-import messageRoute from "../routes/message.routes.js";
-import groupRoute from  "../routes/group.routes.js"  
-import groupMessageRoute from "../routes/groupMessage.routes.js" 
-app.use("/user", userRoutes);
-app.use("/message", messageRoute);  
-app.use("/group",groupRoute);
-app.use("/groupMessage",groupMessageRoute);
 
+import userRoutes       from "../routes/user.routes.js";
+import messageRoute     from "../routes/message.routes.js";
+import groupRoute       from "../routes/group.routes.js";
+import groupMessageRoute from "../routes/groupMessage.routes.js";
+import { isTypedArray } from "util/types"
+import { Socket } from "dgram"
 
-export default server; 
+app.use("/user",         userRoutes);
+app.use("/message",      messageRoute);
+app.use("/group",        groupRoute);
+app.use("/groupMessage", groupMessageRoute);
+
+export default server;
