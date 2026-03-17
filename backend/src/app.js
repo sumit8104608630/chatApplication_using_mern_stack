@@ -82,36 +82,26 @@ io.on("connection", (socket) => {
 
 
         // ── call ────────────────────────────────────────────────────────────────
-socket.on("call-user", ({ to, from, offer }) => {
-  const toSocket = getOnlineUserIds(to);
-  if (!toSocket) {
-    console.log(`[call-user] user ${to} is offline`);
-    // Optionally notify caller that user is offline:
-    socket.emit("call-unavailable", { to });
-    return;
-  }
-  io.to(toSocket).emit("incoming_call", {
-    from,   // caller's user object (name, photo, _id etc.)
-    to,     // callee's userId — used by ChatHomePage to guard the popup
-    offer,  // SDP offer
-  });
-});
- 
-// ── THIS WAS THE MAIN BUG: handler was empty, answer never reached caller ──
-socket.on("accept-call", ({ to, from, answer }) => {
-  const toSocket = getOnlineUserIds(to); // 'to' is the caller's userId
-  if (!toSocket) {
-    console.log(`[accept-call] caller ${to} is no longer online`);
-    return;
-  }
-  // Forward the SDP answer back to the caller so they can call setAnswer()
-  io.to(toSocket).emit("call-accepted", {
-    from,   // callee's user object
-    answer, // SDP answer — caller needs this
-  });
-  console.log(`[accept-call] answer forwarded to caller ${to}`);
+
+        // Add this to app.js inside io.on("connection")
+socket.on("ice-candidate", ({ candidate, to }) => {
+    const targetSocket = getOnlineUserIds(to);
+    if (targetSocket) {
+        io.to(targetSocket).emit("ice-candidate", { candidate });
+    }
 });
 
+   socket.on("call-user", ({ to, from, signal }) => {
+      const targetSocket = getOnlineUserIds(to);
+      if (!targetSocket) return socket.emit("user-unavailable", { to });
+      io.to(targetSocket).emit("incoming-call", { from, signal,to });
+    });
+
+    socket.on("call-accepted",({to,signal})=>{
+        console.log("user_id",to)
+              const targetSocket = getOnlineUserIds(to._id);
+                io.to(targetSocket).emit("accepted_answer",{to,signal})
+    })
 
     // ── Groups ────────────────────────────────────────────────────────────────
 

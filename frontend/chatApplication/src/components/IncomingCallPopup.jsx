@@ -1,120 +1,121 @@
-import React, { useEffect, useState } from 'react';
-import { Phone, PhoneOff } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Phone, PhoneOff, Video } from 'lucide-react';
+import { usePeer } from './Peer'; 
+import { authStore } from '../store/userAuth.store';
+const IncomingCallPopup = ({ caller, onAccept, onDecline,incomingSignal }) => {
+  const [visible, setVisible] = useState(false);
+  const [localStream, setLocalStream]       = useState(null);
+  const {socket}=authStore()
+      const { createOffer, createAnswer, setAnswer, resetPeer, remoteStream } = usePeer();
+    const [callState, setCallState] = useState("idle"); // idle | calling | incoming | active
 
-const IncomingCallPopup = ({ incomingCall, onAccept, onReject }) => {
-  const [ringing, setRinging] = useState(true);
-
-  // pulse the ring animation every 1.8s
   useEffect(() => {
-    const id = setInterval(() => setRinging(r => !r), 900);
-    return () => clearInterval(id);
+    console.log("caller",caller)
+    setTimeout(() => setVisible(true), 10);
   }, []);
 
-  const callerName =
-    incomingCall?.name ||
-    incomingCall?.fullName ||
-    incomingCall?.phone ||
-    'Unknown';
+  const getMic = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    setLocalStream(stream);
+    return stream;
+  };
 
-  const avatar = incomingCall?.profilePhoto;
+
+
+  const stopMic = useCallback(() => {
+    localStream?.getTracks().forEach((t) => t.stop());
+    setLocalStream(null);
+  }, [localStream]);
+
+const audioRef = useRef(null);
+
+useEffect(() => {
+    if (remoteStream && audioRef.current) {
+        audioRef.current.srcObject = remoteStream;
+    }
+}, [remoteStream]);
+
+  const handleAccept = useCallback(async () => {
+    const stream = await getMic();
+    const answer = await createAnswer(incomingSignal, stream, caller._id);
+
+    socket.emit("call-accepted", { to: caller, signal: answer });
+    setCallState("active");
+  }, [socket, incomingSignal, createAnswer]);
+
+  const handleDecline = () => {
+    console.log("end call");
+    onDecline();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div
-        className="relative w-80 rounded-3xl flex flex-col items-center py-10 px-8 gap-6"
-        style={{
-          background:
-            'linear-gradient(160deg, #0f1923 0%, #122333 60%, #0a1a1a 100%)',
-          boxShadow:
-            '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(29,158,117,0.15)',
-        }}
-      >
-        {/* label */}
-        <p
-          className="text-teal-400 text-xs tracking-widest uppercase font-semibold"
-          style={{ fontFamily: "'Syne', sans-serif" }}
-        >
-          Incoming call
-        </p>
+    <div className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}>
+      <audio ref={audioRef} autoPlay playsInline />
 
-        {/* avatar + pulse rings */}
-        <div className="relative flex items-center justify-center">
-          <span
-            className="absolute w-28 h-28 rounded-full border border-teal-500/30 animate-ping"
-            style={{ animationDuration: '1.8s' }}
-          />
-          <span
-            className="absolute w-24 h-24 rounded-full border border-teal-400/20 animate-ping"
-            style={{ animationDuration: '2.4s' }}
-          />
-          {avatar ? (
-            <img
-              src={avatar}
-              alt={callerName}
-              className="w-20 h-20 rounded-full object-cover border-2 border-teal-500/50 relative z-10"
-            />
-          ) : (
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-white relative z-10 border-2 border-teal-500/50"
-              style={{
-                background: 'linear-gradient(135deg, #0e7970, #0f5c55)',
-                fontFamily: "'Syne', sans-serif",
-              }}
-            >
-              {callerName.charAt(0).toUpperCase()}
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Card */}
+      <div className="relative z-10 w-80 rounded-2xl overflow-hidden shadow-2xl bg-[#1a1e23] border border-gray-700">
+        
+        {/* Animated top bar */}
+        <div className="h-1 w-full bg-teal-500 animate-pulse" />
+
+        {/* Content */}
+        <div className="p-6 flex flex-col items-center gap-4">
+
+          {/* Avatar with pulse ring */}
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-teal-500 opacity-20 animate-ping scale-110" />
+            {caller?.profilePhoto ? (
+              <img
+                src={caller.profilePhoto}
+                alt={caller.name}
+                className="w-20 h-20 rounded-full object-cover border-4 border-teal-500 relative z-10"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-[#0e7970] flex items-center justify-center border-4 border-teal-500 relative z-10">
+                <span className="text-white font-bold text-2xl">
+                  {caller?.name?.charAt(0).toUpperCase() ?? '?'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Caller info */}
+          <div className="text-center">
+            <p className="text-gray-400 text-sm tracking-widest uppercase">Incoming Call</p>
+            <h2 className="text-white text-xl font-semibold mt-1">{caller?.name ?? 'Unknown'}</h2>
+            <div className="flex items-center justify-center gap-1 mt-1 text-teal-400 text-sm">
+              <Video className="w-3 h-3" />
+              <span>Video Call</span>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* name */}
-        <p
-          className="text-white text-xl font-semibold tracking-wide text-center"
-          style={{ fontFamily: "'Syne', sans-serif" }}
-        >
-          {callerName}
-        </p>
-
-        {/* accept / reject buttons */}
-        <div className="flex items-center gap-10 mt-2">
-
-          {/* reject */}
-          <button
-            onClick={onReject}
-            title="Decline"
-            className="flex flex-col items-center gap-2 group"
-          >
-            <div
-              className="rounded-full flex items-center justify-center bg-red-500 hover:bg-red-600 active:scale-95 transition-all duration-150"
-              style={{
-                width: 60,
-                height: 60,
-                boxShadow: '0 8px 24px rgba(239,68,68,0.4)',
-              }}
-            >
-              <PhoneOff className="h-6 w-6 text-white" />
+          {/* Action buttons */}
+          <div className="flex gap-12 mt-2">
+            {/* Decline */}
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={handleDecline}
+                className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-red-500/30"
+              >
+                <PhoneOff className="w-6 h-6 text-white" />
+              </button>
+              <span className="text-gray-400 text-xs">Decline</span>
             </div>
-            <span className="text-xs text-gray-400">Decline</span>
-          </button>
 
-          {/* accept */}
-          <button
-            onClick={onAccept}
-            title="Accept"
-            className="flex flex-col items-center gap-2 group"
-          >
-            <div
-              className="rounded-full flex items-center justify-center bg-teal-500 hover:bg-teal-400 active:scale-95 transition-all duration-150"
-              style={{
-                width: 60,
-                height: 60,
-                boxShadow: '0 8px 24px rgba(29,158,117,0.4)',
-              }}
-            >
-              <Phone className="h-6 w-6 text-white" />
+            {/* Accept */}
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={handleAccept}
+                className="w-14 h-14 rounded-full bg-teal-500 hover:bg-teal-600 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-teal-500/30"
+              >
+                <Phone className="w-6 h-6 text-white" />
+              </button>
+              <span className="text-gray-400 text-xs">Accept</span>
             </div>
-            <span className="text-xs text-gray-400">Accept</span>
-          </button>
-
+          </div>
         </div>
       </div>
     </div>

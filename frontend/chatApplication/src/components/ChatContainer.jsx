@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-
+import Calling from "../components/Calling"
 import { 
   ArrowLeft, 
   MoreVertical, 
@@ -24,6 +24,7 @@ import {
 import DropDownMenu from './DropDownMenu';
 import ViewProfile from '../pages/ViewProfilePage';
 import { messageStore } from '../store/message.store';
+import { usePeer } from "../components/Peer";
 
 // ── Forward Message Popup ────────────────────────────────────────────────────
 const ForwardMessagePopup = ({ message, contacts, onForward, onClose }) => {
@@ -212,6 +213,7 @@ const ChatContainer = ({
   const [showEmojiPicker,   setShowEmojiPicker]   = useState(false);
   const [toggleViewProfile, setToggle]             = useState(false);
   const [isOpen,            setIsOpen]             = useState(false);
+  const [call,setCall]=useState(false);
 
   // ── Forward popup state ──────────────────────────────────────────────────
   const [forwardPopup,      setForwardPopup]       = useState(false);
@@ -227,7 +229,9 @@ const ChatContainer = ({
     '🤔','😜','🤣','😇','😴','🤗','🤨','🤓',
     '💪','👀','🙄','😘','😋','🤩','😭','🤷‍♂️',
   ];
-
+const handleVoiceCall=(contact)=>{
+   setCall(true)
+}
   useEffect(() => {
     subScribe();
     return () => { unSubScribe(); };
@@ -255,7 +259,14 @@ const ChatContainer = ({
   const handleViewProfile = () => setToggle(true);
   const deleteChat        = (id) => delete_message({ receiverId: id });
 
-  const handleVoiceCall = (contact) => { console.log('Voice call clicked', contact); };
+
+
+// inside ChatContainer
+
+
+// In JSX, at the top of your return (alongside ForwardMessagePopup):
+
+
   const handleVideoCall = (contact) => { console.log('Video call clicked', contact); };
 
   // ── Open forward popup — called from DropDownMenu ────────────────────────
@@ -273,6 +284,13 @@ const ChatContainer = ({
 
   return (
     <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
+
+      {call && (
+  <Calling
+    contact={currentContact}
+    onClose={() => setCall(false)}
+  />
+)}
 
       {/* ── Forward message popup ── */}
       {forwardPopup && (

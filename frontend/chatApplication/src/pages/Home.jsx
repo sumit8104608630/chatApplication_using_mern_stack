@@ -15,7 +15,7 @@ import { debounce } from '../utils/debounce.js';
 import DropDownMenu from '../components/DropDownMenu.jsx';
 import ChatContainer from '../components/ChatContainer.jsx';
 import BlockedUserPopup from '../components/BlockedPopUp.jsx';
-
+import IncomingCallPopup from '../components/IncomingCallPopup.jsx';
 const ChatHomePage = () => {
   const { get_all_groupMessage, setSelectedGroup, groupSubScribe, selectedGroup, unGroupSubScribe } = groupMessageStore();
   const { filterGroupLoading, groups, filterGroupArray, filter_groups } = groupStore();
@@ -45,6 +45,39 @@ const ChatHomePage = () => {
   const [showBlockedPopup,      setShowBlockedPopup]      = useState(false);
   const [showContactsOnMobile,  setShowContactsOnMobile] = useState(true);
   const [activeMenuId,          setActiveMenuId]          = useState(null);
+    const [incomingSignal, setIncomingSignal] = useState(null);
+    const [caller, setCaller]       = useState(null);
+    const [callState, setCallState] = useState(null)
+
+
+
+
+
+    
+
+  useEffect(()=>{
+        socket.on("incoming-call", ({to, from, signal }) => {
+              console.log(signal)
+            if(to==authUser._id){
+              console.log(signal)
+                setCaller(from);
+      setIncomingSignal(signal);
+      setCallState("incoming");
+            }
+    
+    });
+  },[socket])
+
+
+const handleAcceptCall  = () => setCallState(null);   // logs "accepted" inside the popup
+const handleDeclineCall = () => setCallState(null);  
+
+
+
+
+
+
+
 
   // ─── Data fetching ─────────────────────────────────────────────────────────
   useEffect(() => { get_all_contacts(); }, [get_all_contacts]);
@@ -287,6 +320,20 @@ const ChatHomePage = () => {
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div onClick={handleOutsideClick} className="h-screen bg-[#1a1e23] z-0 flex flex-col md:flex-row">
+
+
+      
+      {callState === "incoming" && (
+  <IncomingCallPopup
+    caller={caller}
+    incomingSignal={incomingSignal}
+    onAccept={handleAcceptCall}
+    onDecline={handleDeclineCall}
+  />
+)}
+
+
+
 
       {/* ── Blocked popup ── */}
       {showBlockedPopup && <BlockedUserPopup onClose={() => setShowBlockedPopup(false)} />}
