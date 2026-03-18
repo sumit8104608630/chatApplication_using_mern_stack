@@ -18,6 +18,7 @@ const CallingPopup = ({ contact, onClose }) => {
     const getMic = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     setLocalStream(stream);
+    localStreamRef.current = stream; // ← add this line
     return stream;
   };
 
@@ -39,13 +40,14 @@ const CallingPopup = ({ contact, onClose }) => {
   }, [socket, authUser, createOffer]);
 
 useEffect(() => {
-    socket.on("accepted_answer", ({ to, signal }) => { // ✅ "accepted_answer"
-        if (to._id == authUser._id) {
-            console.log("signal: ", signal);
-            setAnswer(signal); // don't forget to set the answer on the peer
+  socket.on("accepted_answer", ({ to, signal }) => {
+    if (to._id == authUser._id) {
+        setAnswer(signal).then(() => {
             setCallState("active");
-        }
-    });
+            timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+        });
+    }
+});
 
     return () => socket.off("accepted_answer"); // cleanup
 }, [socket]);
@@ -70,17 +72,6 @@ useEffect(() => {
 
 
 
-  useEffect(() => {
-    const connectTimeout = setTimeout(() => {
-      setConnected(true);
-      timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
-    }, 2500);
-
-    return () => {
-      clearTimeout(connectTimeout);
-      clearInterval(timerRef.current);
-    };
-  }, []);
 
   const formatTime = (s) => {
     const m = Math.floor(s / 60);
@@ -92,6 +83,23 @@ useEffect(() => {
     clearInterval(timerRef.current);
     onClose();
   };
+// ✅ Fix — actually disable the track
+const localStreamRef = useRef(null); // store stream in ref, not state
+
+const toggleMute = useCallback(() => {
+    localStreamRef.current?.getAudioTracks().forEach(t => {
+        t.enabled = muted; // flip: if currently muted, re-enable; vice versa
+    });
+    setMuted(m => !m);
+}, [muted]);
+
+
+  const toggleSpeaker = useCallback(() => {
+    setSpeaker(s => !s);
+    if (audioRef.current?.setSinkId) {
+        audioRef.current.setSinkId(speaker ? '' : 'default');
+    }
+}, [speaker]);
 
   const name = contact?.name || contact?.userId?.name || contact?.phone || 'Unknown';
   const photo = contact?.userId?.profilePhoto;
@@ -119,7 +127,7 @@ useEffect(() => {
         {/* Name + status */}
         <div className="text-center">
           <p className="text-white text-lg font-medium">{name}</p>
-          {connected ? (
+          {callState === "active" ? (
             <p className="text-teal-400 text-sm mt-1 font-mono tracking-widest">
               {formatTime(seconds)}
             </p>
@@ -143,7 +151,7 @@ useEffect(() => {
           {/* Mute */}
           <div className="flex flex-col items-center gap-1">
             <button
-              onClick={() => setMuted(m => !m)}
+              onClick={ toggleMute }
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
                 muted ? 'bg-teal-500 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
@@ -167,7 +175,7 @@ useEffect(() => {
           {/* Speaker */}
           <div className="flex flex-col items-center gap-1">
             <button
-              onClick={() => setSpeaker(s => !s)}
+              onClick={ toggleSpeaker}
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
                 speaker ? 'bg-teal-500 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}

@@ -69,8 +69,9 @@ const ChatHomePage = () => {
   },[socket])
 
 
-const handleAcceptCall  = () => setCallState(null);   // logs "accepted" inside the popup
-const handleDeclineCall = () => setCallState(null);  
+// ✅ Keep the popup alive, just update state
+const handleAcceptCall  = () => setCallState("active");
+const handleDeclineCall = () => setCallState(null); 
 
 
 
@@ -323,7 +324,7 @@ const handleDeclineCall = () => setCallState(null);
 
 
       
-      {callState === "incoming" && (
+      {(callState === "incoming" || callState === "active") && (
   <IncomingCallPopup
     caller={caller}
     incomingSignal={incomingSignal}

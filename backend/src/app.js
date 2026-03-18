@@ -97,6 +97,13 @@ socket.on("ice-candidate", ({ candidate, to }) => {
       io.to(targetSocket).emit("incoming-call", { from, signal,to });
     });
 
+    
+socket.on("call-ended", ({ to }) => {
+    const targetSocket = getOnlineUserIds(to);
+    if (targetSocket) io.to(targetSocket).emit("call-ended");
+});
+
+
     socket.on("call-accepted",({to,signal})=>{
         console.log("user_id",to)
               const targetSocket = getOnlineUserIds(to._id);
@@ -141,6 +148,8 @@ socket.on("ice-candidate", ({ candidate, to }) => {
         io.emit("onlineUser", Object.keys(userSocketMap));
     });
 });
+
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
