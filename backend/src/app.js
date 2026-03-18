@@ -85,6 +85,7 @@ io.on("connection", (socket) => {
 
         // Add this to app.js inside io.on("connection")
 socket.on("ice-candidate", ({ candidate, to }) => {
+    console.log("ICE relay — to:", to, "socket found:", getOnlineUserIds(to));
     const targetSocket = getOnlineUserIds(to);
     if (targetSocket) {
         io.to(targetSocket).emit("ice-candidate", { candidate });

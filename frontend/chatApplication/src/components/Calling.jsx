@@ -93,6 +93,16 @@ const toggleMute = useCallback(() => {
     setMuted(m => !m);
 }, [muted]);
 
+useEffect(() => {
+    socket.on("call-ended", () => {
+        clearInterval(timerRef.current);
+        localStreamRef.current?.getTracks().forEach(t => t.stop());
+        resetPeer();
+        onClose();
+    });
+    return () => socket.off("call-ended");
+}, [socket]);
+
 
   const toggleSpeaker = useCallback(() => {
     setSpeaker(s => !s);

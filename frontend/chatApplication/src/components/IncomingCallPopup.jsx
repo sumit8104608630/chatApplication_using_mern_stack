@@ -31,6 +31,16 @@ const IncomingCallPopup = ({ caller, onAccept, onDecline, incomingSignal }) => {
     }
   }, [remoteStream]);
 
+  useEffect(() => {
+    socket.on("call-ended", () => {
+        clearInterval(timerRef.current);
+        localStreamRef.current?.getTracks().forEach(t => t.stop());
+        resetPeer();
+        onClose();
+    });
+    return () => socket.off("call-ended");
+}, [socket]);
+
   // ── Cleanup on unmount ────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
