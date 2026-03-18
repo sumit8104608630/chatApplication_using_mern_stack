@@ -26,22 +26,6 @@ const CallingPopup = ({ contact, onClose }) => {
     return stream;
   };
 
-
-
-
-
-
-  const [connected, setConnected] = useState(false);
-
-  const [localStream, setLocalStream]       = useState(null);
-
-
-
-    const stopMic = useCallback(() => {
-    localStream?.getTracks().forEach((t) => t.stop());
-    setLocalStream(null);
-  }, [localStream]);
-
   const startCall = useCallback(async () => {
     const stream = await getMic();
     const offer  = await createOffer(stream, contact.userId._id);

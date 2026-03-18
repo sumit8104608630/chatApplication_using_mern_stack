@@ -36,7 +36,7 @@ const IncomingCallPopup = ({ caller, onAccept, onDecline, incomingSignal }) => {
         clearInterval(timerRef.current);
         localStreamRef.current?.getTracks().forEach(t => t.stop());
         resetPeer();
-        onClose();
+        onDecline();
     });
     return () => socket.off("call-ended");
 }, [socket]);
