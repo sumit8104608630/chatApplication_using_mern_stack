@@ -12,12 +12,34 @@ const PeerContext = createContext(null);
 
 const ICE_SERVERS = {
   iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
+    // Google STUN — fast direct connections
+    { urls: "stun:stun.l.google.com:19302"  },
     { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
+    // Metered STUN
+    { urls: "stun:stun.relay.metered.ca:80" },
+    // Metered TURN — fallback for different networks
+    {
+      urls: "turn:global.relay.metered.ca:80",
+      username: "9abe2392a35d2cc1474c2eee",
+      credential: "5ZR0R5WRC7DmLLmn",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:80?transport=tcp",
+      username: "9abe2392a35d2cc1474c2eee",
+      credential: "5ZR0R5WRC7DmLLmn",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:443",
+      username: "9abe2392a35d2cc1474c2eee",
+      credential: "5ZR0R5WRC7DmLLmn",
+    },
+    {
+      urls: "turns:global.relay.metered.ca:443?transport=tcp",
+      username: "9abe2392a35d2cc1474c2eee",
+      credential: "5ZR0R5WRC7DmLLmn",
+    },
   ],
 };
-
 export const PeerProvider = ({ children }) => {
   const peerRef       = useRef(null);
   const callTargetRef = useRef(null);
