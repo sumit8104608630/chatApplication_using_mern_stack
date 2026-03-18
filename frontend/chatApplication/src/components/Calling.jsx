@@ -4,23 +4,38 @@ import { PhoneOff, Mic, MicOff, Volume2 } from 'lucide-react';
 import { usePeer } from "../components/Peer";
 import { authStore } from '../store/userAuth.store';
 const CallingPopup = ({ contact, onClose }) => {
-    const { createOffer, createAnswer, setAnswer, resetPeer, remoteStream } = usePeer();
-    const { get_online_user, activeUser, selectUser, socket, getActiveUser, deleteActiveUser, authUser, delete_authUserMatchId } = authStore();
-    const [callState, setCallState] = useState("idle"); // idle | calling | incoming | active
 
-  const [connected, setConnected] = useState(false);
-  const [muted, setMuted]         = useState(false);
-  const [speaker, setSpeaker]     = useState(false);
-  const [seconds, setSeconds]     = useState(0);
-  const timerRef = useRef(null);
-  const [localStream, setLocalStream]       = useState(null);
+  const { createOffer, setAnswer, resetPeer, remoteStream } = usePeer();
+  const { socket, authUser } = authStore();
 
-    const getMic = async () => {
+  // ── ALL refs at top — before ANY function definition ──
+  const timerRef       = useRef(null);  // ✅
+  const audioRef       = useRef(null);  // ✅
+  const localStreamRef = useRef(null);  // ✅ moved here
+
+  // ── State ──
+  const [callState, setCallState] = useState("calling");
+  const [muted,     setMuted]     = useState(false);
+  const [speaker,   setSpeaker]   = useState(true);
+  const [seconds,   setSeconds]   = useState(0);
+
+  // Now getMic can safely use localStreamRef
+  const getMic = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    setLocalStream(stream);
-    localStreamRef.current = stream; // ← add this line
+    localStreamRef.current = stream; // ✅ ref exists now
     return stream;
   };
+
+
+
+
+
+
+  const [connected, setConnected] = useState(false);
+
+  const [localStream, setLocalStream]       = useState(null);
+
+
 
     const stopMic = useCallback(() => {
     localStream?.getTracks().forEach((t) => t.stop());
@@ -59,7 +74,6 @@ useEffect(() => {
 
 
 
-  const audioRef = useRef(null);
 useEffect(() => {
     if (remoteStream && audioRef.current) {
         audioRef.current.srcObject = remoteStream;
@@ -79,12 +93,17 @@ useEffect(() => {
     return `${m}:${sec < 10 ? '0' : ''}${sec}`;
   };
 
-  const handleEnd = () => {
+const handleEnd = useCallback(() => {
     clearInterval(timerRef.current);
+    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    localStreamRef.current = null;
+    resetPeer();
+    socket.emit("call-ended", { to: contact.userId._id });
     onClose();
-  };
+}, [resetPeer, socket, contact, onClose]);
+
+
 // ✅ Fix — actually disable the track
-const localStreamRef = useRef(null); // store stream in ref, not state
 
 const toggleMute = useCallback(() => {
     localStreamRef.current?.getAudioTracks().forEach(t => {
@@ -94,12 +113,12 @@ const toggleMute = useCallback(() => {
 }, [muted]);
 
 useEffect(() => {
-    socket.on("call-ended", () => {
-        clearInterval(timerRef.current);
-        localStreamRef.current?.getTracks().forEach(t => t.stop());
-        resetPeer();
-        onClose();
-    });
+socket.on("call-ended", () => {
+    clearInterval(timerRef.current);
+    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    resetPeer();
+    onClose(); // ✅ correct prop name
+});
     return () => socket.off("call-ended");
 }, [socket]);
 
