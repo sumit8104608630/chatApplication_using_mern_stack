@@ -324,13 +324,13 @@ const handleDeclineCall = () => setCallState(null);
 
 
       
-      {(callState === "incoming" || callState === "active") && (
-  <IncomingCallPopup
-    caller={caller}
-    incomingSignal={incomingSignal}
-    onAccept={handleAcceptCall}
-    onDecline={handleDeclineCall}
-  />
+{(callState === "incoming" || callState === "active") && caller && (
+    <IncomingCallPopup
+        caller={caller}
+        incomingSignal={incomingSignal}
+        onAccept={handleAcceptCall}
+        onDecline={handleDeclineCall}
+    />
 )}
 
 

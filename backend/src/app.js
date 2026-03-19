@@ -85,7 +85,6 @@ io.on("connection", (socket) => {
 
         // Add this to app.js inside io.on("connection")
 socket.on("ice-candidate", ({ candidate, to }) => {
-    console.log("ICE relay — to:", to, "socket found:", getOnlineUserIds(to));
     const targetSocket = getOnlineUserIds(to);
     if (targetSocket) {
         io.to(targetSocket).emit("ice-candidate", { candidate });
@@ -110,6 +109,14 @@ socket.on("call-ended", ({ to }) => {
               const targetSocket = getOnlineUserIds(to._id);
                 io.to(targetSocket).emit("accepted_answer",{to,signal})
     })
+
+
+    socket.on("call-rejected", ({ to }) => {
+    const targetSocket = getOnlineUserIds(to);
+    if (targetSocket) io.to(targetSocket).emit("call-rejected");
+});
+
+
 
     // ── Groups ────────────────────────────────────────────────────────────────
 

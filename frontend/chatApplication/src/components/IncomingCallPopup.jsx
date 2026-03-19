@@ -69,14 +69,6 @@ const IncomingCallPopup = ({ caller, onAccept, onDecline, incomingSignal }) => {
   }, [socket, incomingSignal, caller, createAnswer, onAccept]);
 
   // ── Decline / End ─────────────────────────────────────────────────────────
-  const handleEnd = useCallback(() => {
-    clearInterval(timerRef.current);
-    localStreamRef.current?.getTracks().forEach(t => t.stop());
-    localStreamRef.current = null;
-    resetPeer();
-    socket.emit("call-ended", { to: caller._id });
-    onDecline();
-  }, [resetPeer, socket, caller, onDecline]);
 
   // ── Mute — actually toggles the real audio track ─────────────────────────
   const toggleMute = useCallback(() => {
@@ -85,6 +77,27 @@ const IncomingCallPopup = ({ caller, onAccept, onDecline, incomingSignal }) => {
     });
     setMuted(m => !m);
   }, [muted]);
+//------reject call--------------//
+
+
+// Replace handleEnd with this
+const handleEnd = useCallback(() => {
+    clearInterval(timerRef.current);
+    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    localStreamRef.current = null;
+    resetPeer();
+
+    if (callState === "incoming") {
+        // Not yet accepted — this is a rejection, not a hang-up
+        socket.emit("call-rejected", { to: caller._id });
+    } else {
+        // Already active — normal end call
+        socket.emit("call-ended", { to: caller._id });
+    }
+
+    onDecline();
+}, [resetPeer, socket, caller, callState, onDecline]);
+
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const formatTime = (s) => {

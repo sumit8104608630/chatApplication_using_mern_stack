@@ -12,34 +12,12 @@ const PeerContext = createContext(null);
 
 const ICE_SERVERS = {
   iceServers: [
-    // Google STUN — fast direct connections
-    { urls: "stun:stun.l.google.com:19302"  },
+    { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
-    // Metered STUN
-    { urls: "stun:stun.relay.metered.ca:80" },
-    // Metered TURN — fallback for different networks
-    {
-      urls: "turn:global.relay.metered.ca:80",
-      username: "9abe2392a35d2cc1474c2eee",
-      credential: "5ZR0R5WRC7DmLLmn",
-    },
-    {
-      urls: "turn:global.relay.metered.ca:80?transport=tcp",
-      username: "9abe2392a35d2cc1474c2eee",
-      credential: "5ZR0R5WRC7DmLLmn",
-    },
-    {
-      urls: "turn:global.relay.metered.ca:443",
-      username: "9abe2392a35d2cc1474c2eee",
-      credential: "5ZR0R5WRC7DmLLmn",
-    },
-    {
-      urls: "turns:global.relay.metered.ca:443?transport=tcp",
-      username: "9abe2392a35d2cc1474c2eee",
-      credential: "5ZR0R5WRC7DmLLmn",
-    },
+    { urls: "stun:stun2.l.google.com:19302" },
   ],
 };
+
 export const PeerProvider = ({ children }) => {
   const peerRef       = useRef(null);
   const callTargetRef = useRef(null);
@@ -95,13 +73,12 @@ export const PeerProvider = ({ children }) => {
 
     // BUG 4 FIX — always build a fresh MediaStream per track so reconnects
     // never mix tracks from a previous call into the same stream object.
-peer.ontrack = (event) => {
-  if (!remoteStreamRef.current) {
-    remoteStreamRef.current = new MediaStream();
-  }
-  remoteStreamRef.current.addTrack(event.track);
-  setRemoteStream(new MediaStream(remoteStreamRef.current.getTracks()));
-};
+    peer.ontrack = (event) => {
+      console.log("[Peer] ontrack fired:", event.track.kind);
+      const stream = new MediaStream();
+      stream.addTrack(event.track);
+      updateRemoteStream(stream);
+    };
 
     peer.onconnectionstatechange = () => {
       console.log("[Peer] connection:", peer.connectionState);
