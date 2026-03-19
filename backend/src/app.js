@@ -106,11 +106,14 @@ socket.on("call-ended", ({ to }) => {
 
 
 socket.on("call-accepted", ({ to, signal }) => {
-    console.log("📲 call-accepted received, to object:", JSON.stringify(to));
-    console.log("📲 looking up to._id:", to?._id);
+    console.log("call-accepted received");
+    console.log("to._id:", to?._id);
+    console.log("targetSocket:", getOnlineUserIds(to?._id));
+    console.log("userSocketMap keys:", Object.keys(userSocketMap));
+    
     const targetSocket = getOnlineUserIds(to._id);
-    console.log("📲 targetSocket for caller:", targetSocket);
     if (targetSocket) io.to(targetSocket).emit("accepted_answer", { signal });
+    else console.log("❌ NO TARGET SOCKET FOUND — caller is not in userSocketMap");
 });
 
 
