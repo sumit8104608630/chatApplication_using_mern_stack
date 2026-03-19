@@ -59,9 +59,9 @@ const startCall = useCallback(async () => {
 
 useEffect(() => {
     const handleAnswer = ({ signal }) => {
-        console.log("✅ accepted_answer received, signal type:", signal?.type);
+        console.log("✅ accepted_answer received on CALLER side, signal type:", signal?.type);
         setAnswer(signal).then(() => {
-            console.log("✅ setAnswer done — switching to active");
+            console.log("✅ setAnswer done on CALLER side — switching to active");
             setCallState("active");
             timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
         });

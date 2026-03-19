@@ -65,7 +65,8 @@ export const PeerProvider = ({ children }) => {
       peerRef.current = null;
     }
 
-    iceCandidates.current  = [];
+    // DO NOT reset iceCandidates.current here because candidates might have
+    // arrived while the phone was ringing (before Accept was clicked).
     remoteStreamRef.current = null;
     setRemoteStream(null);
 
@@ -120,6 +121,7 @@ export const PeerProvider = ({ children }) => {
   const createOffer = useCallback(
     async (stream, targetId) => {
       callTargetRef.current = targetId;
+      iceCandidates.current = []; // Start fresh for a new call session
 
       const peer = buildPeer();
 
