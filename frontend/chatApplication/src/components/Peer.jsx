@@ -19,6 +19,10 @@ const ICE_SERVERS = {
     { urls: "stun:stun4.l.google.com:19302" },
     { urls: "stun:stun.services.mozilla.com" },
     { urls: "stun:stun.ekiga.net" },
+    { urls: "stun:stun.voiparound.com" },
+    { urls: "stun:stun.voipbuster.com" },
+    { urls: "stun:stun.voipstunt.com" },
+    { urls: "stun:stun.voxgratia.org" },
   ],
 };
 
@@ -63,11 +67,15 @@ export const PeerProvider = ({ children }) => {
     remoteStreamRef.current = null;
     setRemoteStream(null);
 
-    const peer = new RTCPeerConnection(ICE_SERVERS);
+    const peer = new RTCPeerConnection({
+      ...ICE_SERVERS,
+      iceCandidatePoolSize: 10, // Pre-fetch ICE candidates for faster connection
+    });
 
     // Forward local ICE candidates to the remote peer
     peer.onicecandidate = ({ candidate }) => {
       if (candidate && socket && callTargetRef.current) {
+        console.log("[Peer] Sending local ICE candidate to:", callTargetRef.current);
         socket.emit("ice-candidate", {
           candidate,
           to: callTargetRef.current,
@@ -80,11 +88,17 @@ export const PeerProvider = ({ children }) => {
     peer.ontrack = (event) => {
       console.log("[Peer] ontrack fired:", event.track.kind);
       const stream = event.streams[0] || new MediaStream([event.track]);
+      
+      // On some mobile browsers, audio doesn't start unless specifically handled.
+      if (event.track.kind === 'audio') {
+        console.log("[Peer] Audio track received — verifying stream...");
+      }
+      
       updateRemoteStream(stream);
     };
 
     peer.onconnectionstatechange = () => {
-      console.log("[Peer] connection:", peer.connectionState);
+      console.log("[Peer] Connection State changed to:", peer.connectionState);
       if (
         peer.connectionState === "failed" ||
         peer.connectionState === "closed"
@@ -94,10 +108,10 @@ export const PeerProvider = ({ children }) => {
     };
 
     peer.oniceconnectionstatechange = () =>
-      console.log("[Peer] ICE:", peer.iceConnectionState);
+      console.log("[Peer] ICE Connection State changed to:", peer.iceConnectionState);
 
     peer.onsignalingstatechange = () =>
-      console.log("[Peer] signaling:", peer.signalingState);
+      console.log("[Peer] Signaling State changed to:", peer.signalingState);
 
     peerRef.current = peer;
     return peer;
@@ -115,7 +129,11 @@ export const PeerProvider = ({ children }) => {
         peer.addTrack(track, stream);
       });
 
-      const offer = await peer.createOffer();
+      // Explicitly tell the browser we want to receive audio (needed for some mobile browsers)
+      const offer = await peer.createOffer({
+        offerToReceiveAudio: true,
+      });
+      
       await peer.setLocalDescription(offer);
       return offer;
     },
@@ -139,7 +157,10 @@ export const PeerProvider = ({ children }) => {
       await peer.setRemoteDescription(new RTCSessionDescription(offer));
       await flushIceCandidates(); // ← correct position: after setRemoteDescription
 
-      const answer = await peer.createAnswer();
+      const answer = await peer.createAnswer({
+        offerToReceiveAudio: true,
+      });
+      
       await peer.setLocalDescription(answer);
       return answer;
     },

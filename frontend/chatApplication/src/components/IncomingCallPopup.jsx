@@ -28,6 +28,10 @@ const IncomingCallPopup = ({ caller, onAccept, onDecline, incomingSignal }) => {
   useEffect(() => {
     if (remoteStream && audioRef.current) {
       audioRef.current.srcObject = remoteStream;
+      // On some mobile browsers, audio doesn't start automatically even with autoPlay
+      audioRef.current.play().catch(err => {
+        console.warn("[Audio] play() failed, waiting for user gesture:", err);
+      });
     }
   }, [remoteStream]);
 
@@ -53,7 +57,14 @@ useEffect(() => {
   // ── Accept ────────────────────────────────────────────────────────────────
 const handleAccept = useCallback(async () => {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Improved constraints for better mobile compatibility and audio quality
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          } 
+        });
         localStreamRef.current = stream;
         console.log("📲 createAnswer called, caller._id:", caller._id);
         const answer = await createAnswer(incomingSignal, stream, caller._id);
@@ -65,7 +76,11 @@ const handleAccept = useCallback(async () => {
         if (onAccept) onAccept();
     } catch (err) {
         console.error("Accept call error:", err);
-        alert("Microphone access is required to accept calls. Please ensure you are using HTTPS and have granted permission.");
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+          alert("WebRTC (Calling) requires HTTPS to work on most browsers. Please use a secure connection.");
+        } else {
+          alert("Microphone access is required to accept calls. Please ensure you have granted permission in your browser settings.");
+        }
     }
 }, [socket, incomingSignal, caller, createAnswer, onAccept]);
 
