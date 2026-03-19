@@ -20,9 +20,15 @@ const CallingPopup = ({ contact, onClose }) => {
 
   // ── Mic helper ────────────────────────────────────────────────────────────
   const getMic = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    localStreamRef.current = stream;
-    return stream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+      return stream;
+    } catch (err) {
+      console.error("[Calling] Failed to get microphone access:", err);
+      alert("Microphone access is required for calls. Please ensure you are using HTTPS and have granted permission.");
+      throw err;
+    }
   };
 
   // ── Start call on mount ───────────────────────────────────────────────────
@@ -73,20 +79,6 @@ useEffect(() => {
       audioRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
-
-  // ── accepted_answer — caller receives callee's answer ─────────────────────
-  // BUG FIX: was nested inside the accepted_answer useEffect — now its own block
- useEffect(() => {
-    const handleAnswer = ({ signal }) => {  // ← drop `to` destructure
-        setAnswer(signal).then(() => {
-            setCallState("active");
-            timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
-        });
-    };
-
-    socket.on("accepted_answer", handleAnswer);
-    return () => socket.off("accepted_answer", handleAnswer);
-}, [socket, setAnswer]);
 
   // ── call-rejected — callee declined ──────────────────────────────────────
   useEffect(() => {

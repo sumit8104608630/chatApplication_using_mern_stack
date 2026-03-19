@@ -65,6 +65,7 @@ const handleAccept = useCallback(async () => {
         if (onAccept) onAccept();
     } catch (err) {
         console.error("Accept call error:", err);
+        alert("Microphone access is required to accept calls. Please ensure you are using HTTPS and have granted permission.");
     }
 }, [socket, incomingSignal, caller, createAnswer, onAccept]);
 

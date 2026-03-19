@@ -106,14 +106,10 @@ socket.on("call-ended", ({ to }) => {
 
 
 socket.on("call-accepted", ({ to, signal }) => {
-    console.log("call-accepted received");
-    console.log("to._id:", to?._id);
-    console.log("targetSocket:", getOnlineUserIds(to?._id));
-    console.log("userSocketMap keys:", Object.keys(userSocketMap));
-    
     const targetSocket = getOnlineUserIds(to._id);
+    console.log("Emitting accepted_answer to socketId:", targetSocket);
+    console.log("That socket still connected?", io.sockets.sockets.has(targetSocket));
     if (targetSocket) io.to(targetSocket).emit("accepted_answer", { signal });
-    else console.log("❌ NO TARGET SOCKET FOUND — caller is not in userSocketMap");
 });
 
 

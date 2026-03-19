@@ -15,6 +15,10 @@ const ICE_SERVERS = {
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    { urls: "stun:stun.services.mozilla.com" },
+    { urls: "stun:stun.ekiga.net" },
   ],
 };
 
@@ -71,12 +75,11 @@ export const PeerProvider = ({ children }) => {
       }
     };
 
-    // BUG 4 FIX — always build a fresh MediaStream per track so reconnects
-    // never mix tracks from a previous call into the same stream object.
+    // BUG 4 FIX — use the existing stream if provided, otherwise build one.
+    // Using event.streams[0] is standard for RTCPeerConnection.
     peer.ontrack = (event) => {
       console.log("[Peer] ontrack fired:", event.track.kind);
-      const stream = new MediaStream();
-      stream.addTrack(event.track);
+      const stream = event.streams[0] || new MediaStream([event.track]);
       updateRemoteStream(stream);
     };
 
