@@ -95,12 +95,13 @@ export const PeerProvider = ({ children }) => {
 
     // BUG 4 FIX — always build a fresh MediaStream per track so reconnects
     // never mix tracks from a previous call into the same stream object.
-    peer.ontrack = (event) => {
-      console.log("[Peer] ontrack fired:", event.track.kind);
-      const stream = new MediaStream();
-      stream.addTrack(event.track);
-      updateRemoteStream(stream);
-    };
+peer.ontrack = (event) => {
+  if (!remoteStreamRef.current) {
+    remoteStreamRef.current = new MediaStream();
+  }
+  remoteStreamRef.current.addTrack(event.track);
+  setRemoteStream(new MediaStream(remoteStreamRef.current.getTracks()));
+};
 
     peer.onconnectionstatechange = () => {
       console.log("[Peer] connection:", peer.connectionState);
