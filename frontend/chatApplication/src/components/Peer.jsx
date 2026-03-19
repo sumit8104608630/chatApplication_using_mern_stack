@@ -46,10 +46,11 @@ export const PeerProvider = ({ children }) => {
     const peer = peerRef.current;
     if (!peer || !peer.remoteDescription) return;
 
+    console.log(`[Peer] Flushing ${iceCandidates.current.length} queued ICE candidates`);
     while (iceCandidates.current.length > 0) {
       const candidate = iceCandidates.current.shift();
       try {
-        await peer.addIceCandidate(new RTCIceCandidate(candidate));
+        await peer.addIceCandidate(candidate);
       } catch (err) {
         console.error("[Peer] Failed to add queued ICE candidate:", err);
       }
@@ -59,6 +60,7 @@ export const PeerProvider = ({ children }) => {
   // ── Build a fresh RTCPeerConnection ────────────────────────────────────────
   const buildPeer = useCallback(() => {
     if (peerRef.current) {
+      console.log("[Peer] Closing existing connection before building new one");
       peerRef.current.close();
       peerRef.current = null;
     }
@@ -67,10 +69,7 @@ export const PeerProvider = ({ children }) => {
     remoteStreamRef.current = null;
     setRemoteStream(null);
 
-    const peer = new RTCPeerConnection({
-      ...ICE_SERVERS,
-      iceCandidatePoolSize: 10, // Pre-fetch ICE candidates for faster connection
-    });
+    const peer = new RTCPeerConnection(ICE_SERVERS);
 
     // Forward local ICE candidates to the remote peer
     peer.onicecandidate = ({ candidate }) => {
@@ -212,7 +211,8 @@ const setAnswer = useCallback(async (answer) => {
       }
 
       try {
-        await peer.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log("[Peer] Adding ICE candidate from socket");
+        await peer.addIceCandidate(candidate);
       } catch (err) {
         console.error("[Peer] addIceCandidate error:", err);
       }

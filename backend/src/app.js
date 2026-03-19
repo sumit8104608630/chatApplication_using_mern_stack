@@ -86,6 +86,7 @@ io.on("connection", (socket) => {
         // Add this to app.js inside io.on("connection")
 socket.on("ice-candidate", ({ candidate, to }) => {
     const targetSocket = getOnlineUserIds(to);
+    console.log("❄️ ICE: from=", socket.id, "to=", to, "targetSocket=", targetSocket);
     if (targetSocket) {
         io.to(targetSocket).emit("ice-candidate", { candidate });
     }
@@ -107,9 +108,12 @@ socket.on("call-ended", ({ to }) => {
 
 socket.on("call-accepted", ({ to, signal }) => {
     const targetSocket = getOnlineUserIds(to._id);
-    console.log("Emitting accepted_answer to socketId:", targetSocket);
-    console.log("That socket still connected?", io.sockets.sockets.has(targetSocket));
-    if (targetSocket) io.to(targetSocket).emit("accepted_answer", { signal });
+    console.log("🤝 call-accepted: emitting accepted_answer to socketId:", targetSocket);
+    if (targetSocket) {
+        io.to(targetSocket).emit("accepted_answer", { signal });
+    } else {
+        console.warn("⚠️ call-accepted: targetSocket not found for userId:", to._id);
+    }
 });
 
 
