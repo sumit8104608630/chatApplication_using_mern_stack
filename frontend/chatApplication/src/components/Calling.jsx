@@ -50,19 +50,17 @@ const CallingPopup = ({ contact, onClose }) => {
 
   // ── accepted_answer — caller receives callee's answer ─────────────────────
   // BUG FIX: was nested inside the accepted_answer useEffect — now its own block
-  useEffect(() => {
-    const handleAnswer = ({ to, signal }) => {
-      if (to._id === authUser._id) {
+ useEffect(() => {
+    const handleAnswer = ({ signal }) => {  // ← drop `to` destructure
         setAnswer(signal).then(() => {
-          setCallState("active");
-          timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+            setCallState("active");
+            timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
         });
-      }
     };
 
     socket.on("accepted_answer", handleAnswer);
     return () => socket.off("accepted_answer", handleAnswer);
-  }, [socket, authUser._id, setAnswer]);
+}, [socket, setAnswer]);
 
   // ── call-rejected — callee declined ──────────────────────────────────────
   useEffect(() => {
