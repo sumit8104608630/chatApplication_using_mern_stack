@@ -6,6 +6,8 @@ import {
   Trash2, CheckCheck, Download, VideoIcon,
   MessageSquare, Loader
 } from 'lucide-react';
+import CallingPopup from '../components/Calling.jsx'; // adjust path
+
 import { messageStore } from '../store/message.store.js';
 import { authStore } from '../store/userAuth.store.js';
 import { groupStore } from '../store/group.store';
@@ -49,24 +51,25 @@ const ChatHomePage = () => {
     const [caller, setCaller]       = useState(null);
     const [callState, setCallState] = useState(null)
 
+const [callingContact, setCallingContact] = useState(null);
 
 
 
 
     
+useEffect(() => {
+    const handleIncoming = ({ to, from, signal }) => {
+        if (to == authUser._id) {
+            setCaller(from);
+            setIncomingSignal(signal);
+            setCallState("incoming");
+        }
+    };
+    socket.on("incoming-call", handleIncoming);
+    return () => socket.off("incoming-call", handleIncoming); // ← was missing
+}, [socket]);
 
-  useEffect(()=>{
-        socket.on("incoming-call", ({to, from, signal }) => {
-              console.log(signal)
-            if(to==authUser._id){
-              console.log(signal)
-                setCaller(from);
-      setIncomingSignal(signal);
-      setCallState("incoming");
-            }
-    
-    });
-  },[socket])
+
 
 
 // ✅ Keep the popup alive, just update state
@@ -339,6 +342,13 @@ const handleDeclineCall = () => setCallState(null);
       {/* ── Blocked popup ── */}
       {showBlockedPopup && <BlockedUserPopup onClose={() => setShowBlockedPopup(false)} />}
 
+
+{callingContact && (
+    <CallingPopup
+        contact={callingContact}
+        onClose={() => setCallingContact(null)}
+    />
+)}
       {/* ── Left panel ── */}
       <div className={`${showContactsOnMobile ? 'flex' : 'hidden'} md:flex md:w-80 border-r border-gray-800 flex-col h-full md:h-screen`}>
 

@@ -104,11 +104,16 @@ socket.on("call-ended", ({ to }) => {
 });
 
 
-    socket.on("call-accepted",({to,signal})=>{
-        console.log("user_id",to)
-              const targetSocket = getOnlineUserIds(to._id);
-                io.to(targetSocket).emit("accepted_answer",{to,signal})
-    })
+socket.on("call-accepted", ({ to, signal }) => {
+    // `to` is the full caller object sent from IncomingCallPopup
+    // to._id is the CALLER's userId — look them up and send back to them
+    const targetSocket = getOnlineUserIds(to._id);
+    console.log("Routing accepted_answer to caller:", to._id, "socket:", targetSocket);
+    if (targetSocket) {
+        io.to(targetSocket).emit("accepted_answer", { signal });
+        // No need to send `to` back — CallingPopup doesn't use it anymore
+    }
+});
 
 
     socket.on("call-rejected", ({ to }) => {
