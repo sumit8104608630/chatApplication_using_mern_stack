@@ -146,19 +146,19 @@ export const PeerProvider = ({ children }) => {
   // ── setAnswer — caller applies callee's answer ─────────────────────────────
   // BUG 2 FIX — replaced throw with a warning + early return so an accidental
   // double-call doesn't crash the caller's async chain silently.
-  const setAnswer = useCallback(
-    async (answer) => {
-      const peer = peerRef.current;
-      if (!peer) {
-        console.warn("[Peer] setAnswer called but no active peer connection — ignoring");
+const setAnswer = useCallback(async (answer) => {
+    const peer = peerRef.current;
+    console.log("🔧 setAnswer called, peer exists:", !!peer, "answer type:", answer?.type);
+    if (!peer) {
+        console.warn("[Peer] setAnswer — no active peer, ignoring");
         return;
-      }
-
-      await peer.setRemoteDescription(new RTCSessionDescription(answer));
-      await flushIceCandidates();
-    },
-    [flushIceCandidates]
-  );
+    }
+    console.log("🔧 peer signalingState before setRemoteDescription:", peer.signalingState);
+    await peer.setRemoteDescription(new RTCSessionDescription(answer));
+    console.log("🔧 setRemoteDescription done, flushing ICE...");
+    await flushIceCandidates();
+    console.log("🔧 ICE flush done");
+}, [flushIceCandidates]);
 
   // ── BUG 3 FIX — expose a cleanup helper so ChatHomePage can clear the ref
   // when the call ends, preventing stale ICE events from emitting to old peers.

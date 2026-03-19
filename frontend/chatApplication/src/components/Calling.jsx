@@ -26,17 +26,43 @@ const CallingPopup = ({ contact, onClose }) => {
   };
 
   // ── Start call on mount ───────────────────────────────────────────────────
-  const startCall = useCallback(async () => {
+const startCall = useCallback(async () => {
     const stream = await getMic();
     const offer  = await createOffer(stream, contact.userId._id);
+    console.log("📞 call-user emitted to:", contact.userId._id);
+    console.log("📞 offer type:", offer.type);
     socket.emit("call-user", {
-      to:     contact.userId._id,
-      from:   authUser,
-      signal: offer,
+        to:     contact.userId._id,
+        from:   authUser,
+        signal: offer,
     });
-    setCallState("calling");
-  }, [socket, authUser, createOffer, contact]);
+}, [socket, authUser, createOffer, contact]);
 
+useEffect(() => {
+    const handleAnswer = ({ signal }) => {
+        console.log("✅ accepted_answer received, signal type:", signal?.type);
+        setAnswer(signal).then(() => {
+            console.log("✅ setAnswer done — switching to active");
+            setCallState("active");
+            timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+        });
+    };
+    socket.on("accepted_answer", handleAnswer);
+    return () => socket.off("accepted_answer", handleAnswer);
+}, [socket, setAnswer]);
+
+
+
+
+
+
+
+
+
+
+
+
+  
   useEffect(() => {
     startCall();
   }, []);  // run once on mount only

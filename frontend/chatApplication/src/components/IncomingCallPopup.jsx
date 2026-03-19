@@ -51,23 +51,27 @@ useEffect(() => {
   }, []);
 
   // ── Accept ────────────────────────────────────────────────────────────────
-  const handleAccept = useCallback(async () => {
+const handleAccept = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      localStreamRef.current = stream; // store in ref, not state
-
-      const answer = await createAnswer(incomingSignal, stream, caller._id);
-      socket.emit("call-accepted", { to: caller, signal: answer });
-
-      // Timer starts ONLY here — when call is truly accepted
-      setCallState("active");
-      timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
-
-      if (onAccept) onAccept();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStreamRef.current = stream;
+        console.log("📲 createAnswer called, caller._id:", caller._id);
+        const answer = await createAnswer(incomingSignal, stream, caller._id);
+        console.log("📲 answer created, type:", answer?.type);
+        console.log("📲 emitting call-accepted to:", caller._id, "full caller obj:", caller);
+        socket.emit("call-accepted", { to: caller, signal: answer });
+        setCallState("active");
+        timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+        if (onAccept) onAccept();
     } catch (err) {
-      console.error("Accept call error:", err);
+        console.error("Accept call error:", err);
     }
-  }, [socket, incomingSignal, caller, createAnswer, onAccept]);
+}, [socket, incomingSignal, caller, createAnswer, onAccept]);
+
+
+
+
+
 
   // ── Decline / End ─────────────────────────────────────────────────────────
 

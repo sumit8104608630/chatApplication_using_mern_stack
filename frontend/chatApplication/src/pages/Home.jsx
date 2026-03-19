@@ -24,6 +24,9 @@ const ChatHomePage = () => {
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
+const callingContactRef = useRef(false);
+
+
   const { get_online_user, activeUser, selectUser, socket, getActiveUser, deleteActiveUser, authUser, delete_authUserMatchId } = authStore();
   const {
     get_all_contacts, contacts, send_message, getAll_messages, update_message_array_to_seen,
@@ -183,6 +186,9 @@ const handleDeclineCall = () => setCallState(null);
     setActiveGroup(null);
     setShowContactsOnMobile(true);
   };
+
+
+  
 
   // ─── File download ─────────────────────────────────────────────────────────
   const handleDownloadFile = async (fileUrl) => {

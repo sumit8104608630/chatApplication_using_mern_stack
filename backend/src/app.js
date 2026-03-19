@@ -91,11 +91,12 @@ socket.on("ice-candidate", ({ candidate, to }) => {
     }
 });
 
-   socket.on("call-user", ({ to, from, signal }) => {
-      const targetSocket = getOnlineUserIds(to);
-      if (!targetSocket) return socket.emit("user-unavailable", { to });
-      io.to(targetSocket).emit("incoming-call", { from, signal,to });
-    });
+socket.on("call-user", ({ to, from, signal }) => {
+    const targetSocket = getOnlineUserIds(to);
+    console.log("📞 call-user: to userId=", to, "targetSocket=", targetSocket);
+    if (!targetSocket) return socket.emit("user-unavailable", { to });
+    io.to(targetSocket).emit("incoming-call", { from, signal, to });
+});
 
     
 socket.on("call-ended", ({ to }) => {
@@ -105,14 +106,11 @@ socket.on("call-ended", ({ to }) => {
 
 
 socket.on("call-accepted", ({ to, signal }) => {
-    // `to` is the full caller object sent from IncomingCallPopup
-    // to._id is the CALLER's userId — look them up and send back to them
+    console.log("📲 call-accepted received, to object:", JSON.stringify(to));
+    console.log("📲 looking up to._id:", to?._id);
     const targetSocket = getOnlineUserIds(to._id);
-    console.log("Routing accepted_answer to caller:", to._id, "socket:", targetSocket);
-    if (targetSocket) {
-        io.to(targetSocket).emit("accepted_answer", { signal });
-        // No need to send `to` back — CallingPopup doesn't use it anymore
-    }
+    console.log("📲 targetSocket for caller:", targetSocket);
+    if (targetSocket) io.to(targetSocket).emit("accepted_answer", { signal });
 });
 
 
