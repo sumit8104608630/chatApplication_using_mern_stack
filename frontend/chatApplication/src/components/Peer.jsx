@@ -12,17 +12,33 @@ const PeerContext = createContext(null);
 
 const ICE_SERVERS = {
   iceServers: [
+    // --- TURN Servers (Primary) ---
+    {
+      urls: "turn:global.relay.metered.ca:80",
+      username: "9abe2392a35d2cc1474c2eee",
+      credential: "5ZR0R5WRC7DmLLmn",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:80?transport=tcp",
+      username: "9abe2392a35d2cc1474c2eee",
+      credential: "5ZR0R5WRC7DmLLmn",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:443",
+      username: "9abe2392a35d2cc1474c2eee",
+      credential: "5ZR0R5WRC7DmLLmn",
+    },
+    {
+      urls: "turns:global.relay.metered.ca:443?transport=tcp",
+      username: "9abe2392a35d2cc1474c2eee",
+      credential: "5ZR0R5WRC7DmLLmn",
+    },
+    // --- STUN Servers (Fallback) ---
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:stun3.l.google.com:19302" },
-    { urls: "stun:stun4.l.google.com:19302" },
     { urls: "stun:stun.services.mozilla.com" },
-    { urls: "stun:stun.ekiga.net" },
-    { urls: "stun:stun.voiparound.com" },
-    { urls: "stun:stun.voipbuster.com" },
-    { urls: "stun:stun.voipstunt.com" },
-    { urls: "stun:stun.voxgratia.org" },
+    { urls: "stun:stun.relay.metered.ca:80" },
   ],
 };
 
