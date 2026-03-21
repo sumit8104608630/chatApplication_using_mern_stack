@@ -70,11 +70,15 @@ const user_login=asyncHandler(async(req,res)=>{
       return res.status(200).cookie('accessToken',token.token,{
         httpOnly: true,
         secure: true,
-        sameSite: "None"
+        sameSite: "None",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: "/"
     }).cookie("refresh_token",token.refresh_token,{
         httpOnly: true,
         secure: true,
-        sameSite: "None"
+        sameSite: "None",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: "/"
     }).json(new apiResponse(
         200,user,"user logged in successfully"
     ))
@@ -93,14 +97,13 @@ const user_logout=asyncHandler(async(req,res)=>{
        return res.status(200).clearCookie('accessToken',{
             httpOnly:true,
             secure:true,
-            sameSite: "None" // Cross-origin पर काम करने के लिए
-
+            sameSite: "None",
+            path: "/"
         }).clearCookie('refresh_token',{
                 httpOnly:true,
                 secure:true,
-                sameSite: "None" // Cross-origin पर काम करने के लिए
-
-                
+                sameSite: "None",
+                path: "/"
         }).json(new  apiResponse(200,"logout successfully"));
 
     } catch (error) {
