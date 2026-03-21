@@ -69,12 +69,12 @@ const user_login=asyncHandler(async(req,res)=>{
        
       return res.status(200).cookie('accessToken',token.token,{
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'None':'Lax'
+        secure: true,
+        sameSite: "None"
     }).cookie("refresh_token",token.refresh_token,{
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'None':'Lax'
+        secure: true,
+        sameSite: "None"
     }).json(new apiResponse(
         200,user,"user logged in successfully"
     ))

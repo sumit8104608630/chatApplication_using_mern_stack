@@ -33,9 +33,11 @@ return async(req,res,next)=>{
             res.status(200).cookie('accessToken',new_accessToken,{
                 httpOnly:true,
                 secure:true,
+                sameSite: "None"
             }).cookie("refresh_token",new_refreshToken,{
                 httpOnly:true,
                 secure:true,
+                sameSite: "None"
             })
             return next()
         } 
