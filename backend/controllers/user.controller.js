@@ -67,13 +67,18 @@ const user_login=asyncHandler(async(req,res)=>{
         return res.status(400).json(new apiResponse(400,{},token.message))
        }    
        
+      // ── Determine Protocol for Safari compatibility ──
+      // If the request is over HTTP, 'secure: true' will cause Safari to block the cookie.
+      const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+
       const cookieOptions = {
         httpOnly: true,
-        secure: true,
-        sameSite: "None",
+        secure: isHttps,
+        sameSite: isHttps ? "None" : "Lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        path: "/"
+        path: "/",
+        partitioned: isHttps // For modern browsers and iPhone Safari (CHIPS)
       };
 
       return res.status(200)

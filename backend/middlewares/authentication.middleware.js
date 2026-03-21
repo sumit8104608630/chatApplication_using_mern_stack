@@ -30,19 +30,21 @@ return async(req,res,next)=>{
             const new_accessToken=await setUser(user);
             const new_refreshToken=await fun_refreshToken(user);
             req.user=user;
+            const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
             const cookieOptions = {
                 httpOnly: true,
-                secure: true,
-                sameSite: "None",
+                secure: isHttps,
+                sameSite: isHttps ? "None" : "Lax",
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                path: "/"
+                path: "/",
+                partitioned: isHttps
             };
 
-            res.status(200)
-                .cookie('accessToken', new_accessToken, cookieOptions)
-                .cookie("refresh_token", new_refreshToken, cookieOptions);
-            return next()
+            res.cookie('accessToken', new_accessToken, cookieOptions)
+               .cookie("refresh_token", new_refreshToken, cookieOptions);
+            
+            return next();
         } 
         if(!user){
             return res.status(401).json({ message: "Unauthorized: User not found."})
