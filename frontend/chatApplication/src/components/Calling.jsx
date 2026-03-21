@@ -49,10 +49,20 @@ const startCall = useCallback(async () => {
     const stream = await getMic();
     const offer  = await createOffer(stream, contact.userId._id);
 
+    // Persist call state: calling
+    sessionStorage.setItem("activeCall", JSON.stringify({
+        callTargetId: contact.userId._id,
+        callRole: "caller",
+        callStatus: "calling",
+        callType: "audio",
+        callStartedAt: Date.now(),
+    }));
+
     socket.emit("call-user", {
         to:     contact.userId._id,
         from:   authUser,
         signal: offer,
+        callType: "audio"
     });
 }, [socket, authUser, createOffer, contact]);
 

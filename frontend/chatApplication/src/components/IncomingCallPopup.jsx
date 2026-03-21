@@ -87,6 +87,15 @@ const handleAccept = useCallback(async () => {
         });
         localStreamRef.current = stream;
         const answer = await createAnswer(incomingSignal, stream, caller._id);
+
+        // Persist call state: ongoing
+        const saved = JSON.parse(sessionStorage.getItem("activeCall") || "{}");
+        sessionStorage.setItem("activeCall", JSON.stringify({
+            ...saved,
+            callStatus: "ongoing",
+            callType: "audio"
+        }));
+
         socket.emit("call-accepted", { to: caller, signal: answer });
         setCallState("active");
         timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);

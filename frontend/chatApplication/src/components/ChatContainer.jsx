@@ -208,12 +208,13 @@ const ChatContainer = ({
   setFullViewImage,
   handleDownloadFile,
   setShowFilePopup,
+  setCallingContact,
+  setVideoCallingContact,
 }) => {
 
   const [showEmojiPicker,   setShowEmojiPicker]   = useState(false);
   const [toggleViewProfile, setToggle]             = useState(false);
   const [isOpen,            setIsOpen]             = useState(false);
-  const [call,setCall]=useState(false);
 
   // ── Forward popup state ──────────────────────────────────────────────────
   const [forwardPopup,      setForwardPopup]       = useState(false);
@@ -229,9 +230,14 @@ const ChatContainer = ({
     '🤔','😜','🤣','😇','😴','🤗','🤨','🤓',
     '💪','👀','🙄','😘','😋','🤩','😭','🤷‍♂️',
   ];
-const handleVoiceCall=(contact)=>{
-   setCall(true)
-}
+  const handleVoiceCall = (contact) => {
+    if (currentContact) setCallingContact(currentContact);
+  };
+
+  const handleVideoCall = (contact) => {
+    if (currentContact) setVideoCallingContact(currentContact);
+  };
+
   useEffect(() => {
     subScribe();
     return () => { unSubScribe(); };
@@ -259,16 +265,6 @@ const handleVoiceCall=(contact)=>{
   const handleViewProfile = () => setToggle(true);
   const deleteChat        = (id) => delete_message({ receiverId: id });
 
-
-
-// inside ChatContainer
-
-
-// In JSX, at the top of your return (alongside ForwardMessagePopup):
-
-
-  const handleVideoCall = (contact) => { console.log('Video call clicked', contact); };
-
   // ── Open forward popup — called from DropDownMenu ────────────────────────
   const openForwardPopup = (msg) => {
     setForwardMsg(msg);
@@ -284,13 +280,6 @@ const handleVoiceCall=(contact)=>{
 
   return (
     <div className={`${!showContactsOnMobile ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full`}>
-
-      {call && (
-  <Calling
-    contact={currentContact}
-    onClose={() => setCall(false)}
-  />
-)}
 
       {/* ── Forward message popup ── */}
       {forwardPopup && (

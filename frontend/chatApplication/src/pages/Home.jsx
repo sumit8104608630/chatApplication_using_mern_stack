@@ -6,7 +6,9 @@ import {
   Trash2, CheckCheck, Download, VideoIcon,
   MessageSquare, Loader
 } from 'lucide-react';
-import CallingPopup from '../components/Calling.jsx'; // adjust path
+import CallingPopup from '../components/Calling.jsx';
+import VideoCalling from '../components/VideoCalling.jsx';
+import IncomingVideoCallPopup from '../components/IncomingVideoCallPopup.jsx';
 
 import { messageStore } from '../store/message.store.js';
 import { authStore } from '../store/userAuth.store.js';
@@ -54,38 +56,130 @@ const callingContactRef = useRef(false);
   const [activeMenuId,          setActiveMenuId]          = useState(null);
     const [incomingSignal, setIncomingSignal] = useState(null);
     const [caller, setCaller]       = useState(null);
-    const [callState, setCallState] = useState(null)
+    const [callState, setCallState] = useState(null);
+    const [callType, setCallType]   = useState(null); // audio | video
 
 const [callingContact, setCallingContact] = useState(null);
+const [videoCallingContact, setVideoCallingContact] = useState(null);
 
 
 
 
     
 useEffect(() => {
-    const handleIncoming = ({ to, from, signal }) => {
+    const handleIncoming = ({ to, from, signal, callType: incomingType = "audio" }) => {
         if (authUser?._id && to === authUser._id) {
+            let currentStatus = "incoming";
+
+            // Check if this is a reconnection attempt for an ongoing call
+            const saved = sessionStorage.getItem("activeCall");
+            if (saved) {
+                try {
+                    const { callTargetId, callStatus, callType: savedType } = JSON.parse(saved);
+                    if (callStatus === "ongoing" && callTargetId === from._id) {
+                        currentStatus = "ongoing";
+                        setCallType(savedType || incomingType);
+                    }
+                } catch (e) { }
+            } else {
+                setCallType(incomingType);
+            }
+
+            // Persist call state: preserve 'ongoing' if it was already active
+            sessionStorage.setItem("activeCall", JSON.stringify({
+                callTargetId: from._id,
+                callRole: "callee",
+                callStatus: currentStatus,
+                callType: incomingType,
+                callerInfo: from,
+                incomingSignal: signal,
+                callStartedAt: Date.now()
+            }));
+
             setCaller(from);
             setIncomingSignal(signal);
             setCallState("incoming");
             
             // Set call target so beforeunload/pagehide in Peer.jsx knows who to notify
             setCallTarget(from._id);
-            
-            // Persist call state: incoming (for callee)
-            sessionStorage.setItem("activeCall", JSON.stringify({
-                callTargetId: from._id,
-                callRole: "callee",
-                callStatus: "incoming",
-                callerInfo: from,
-                incomingSignal: signal,
-                callStartedAt: Date.now()
-            }));
         }
     };
     socket?.on("incoming-call", handleIncoming);
     return () => socket?.off("incoming-call", handleIncoming);
 }, [socket, authUser?._id, setCallTarget]);
+
+// ── Call Reconnection Logic on Reload ────────────────────────────────────────
+useEffect(() => {
+    // Wait for socket, authUser, AND contacts to be loaded
+    if (!socket || !authUser || contacts.length === 0) return;
+
+    const saved = sessionStorage.getItem("activeCall");
+    if (!saved) return;
+
+    try {
+        const { callTargetId, callRole, callStatus, callType: savedType } = JSON.parse(saved);
+        setCallType(savedType);
+
+        if (callStatus === "ongoing") {
+            // 1. Restore the UI for the reloaded peer
+            if (callRole === "caller") {
+                const contact = contacts.find(c => c.userId._id === callTargetId);
+                if (contact) {
+                    if (savedType === "video") {
+                        setVideoCallingContact(contact);
+                    } else {
+                        setCallingContact(contact);
+                    }
+                }
+            }
+
+            // 2. Notify the other side
+            socket.emit("call-reconnect", {
+                to: callTargetId,
+                role: callRole,
+                from: authUser._id
+            });
+        } else if (callStatus === "calling") {
+            socket.emit("call-cancelled", { to: callTargetId });
+            sessionStorage.removeItem("activeCall");
+        } else if (callStatus === "incoming") {
+            const { callerInfo, incomingSignal } = JSON.parse(saved);
+            setCaller(callerInfo);
+            setIncomingSignal(incomingSignal);
+            setCallState("incoming");
+        }
+    } catch (e) {
+        sessionStorage.removeItem("activeCall");
+    }
+}, [socket, authUser, contacts]);
+
+// ── Listen for Peer Reconnection ─────────────────────────────────────────────
+useEffect(() => {
+    if (!socket || contacts.length === 0) return;
+
+    const handlePeerReconnected = ({ from, role }) => {
+        if (role === "callee") {
+            const contact = contacts.find(c => c.userId._id === from);
+            if (contact) {
+                const saved = JSON.parse(sessionStorage.getItem("activeCall") || "{}");
+                if (saved.callType === "video") {
+                    setVideoCallingContact(null);
+                    setTimeout(() => setVideoCallingContact(contact), 100);
+                } else {
+                    setCallingContact(null);
+                    setTimeout(() => setCallingContact(contact), 100);
+                }
+            }
+        } else {
+            setCallState(null);
+            setCaller(null);
+            setIncomingSignal(null);
+        }
+    };
+
+    socket.on("peer-reconnected", handlePeerReconnected);
+    return () => socket.off("peer-reconnected", handlePeerReconnected);
+}, [socket, contacts]);
 
 
 
@@ -355,25 +449,37 @@ const handleDeclineCall = () => {
 
       
 {(callState === "incoming" || callState === "active") && caller && (
-    <IncomingCallPopup
+    callType === "video" ? (
+      <IncomingVideoCallPopup
         caller={caller}
         incomingSignal={incomingSignal}
         onAccept={handleAcceptCall}
         onDecline={handleDeclineCall}
-    />
+      />
+    ) : (
+      <IncomingCallPopup
+        caller={caller}
+        incomingSignal={incomingSignal}
+        onAccept={handleAcceptCall}
+        onDecline={handleDeclineCall}
+      />
+    )
 )}
-
-
-
 
       {/* ── Blocked popup ── */}
       {showBlockedPopup && <BlockedUserPopup onClose={() => setShowBlockedPopup(false)} />}
-
 
 {callingContact && (
     <CallingPopup
         contact={callingContact}
         onClose={() => setCallingContact(null)}
+    />
+)}
+
+{videoCallingContact && (
+    <VideoCalling
+        contact={videoCallingContact}
+        onClose={() => setVideoCallingContact(null)}
     />
 )}
       {/* ── Left panel ── */}
@@ -551,6 +657,8 @@ const handleDeclineCall = () => {
           setFullViewImage={setFullViewImage}
           handleDownloadFile={handleDownloadFile}
           setShowFilePopup={setShowFilePopup}
+          setCallingContact={setCallingContact}
+          setVideoCallingContact={setVideoCallingContact}
         />
       )}
     </div>

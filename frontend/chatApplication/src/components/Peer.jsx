@@ -123,19 +123,20 @@ export const PeerProvider = ({ children }) => {
 
   // ── createOffer — caller side ──────────────────────────────────────────────
   const createOffer = useCallback(
-    async (stream, targetId) => {
+    async (stream, targetId, isVideo = false) => {
       setCallTarget(targetId);
       iceCandidates.current = []; // Start fresh for a new call session
 
       const peer = buildPeer();
 
-      stream.getAudioTracks().forEach((track) => {
+      stream.getTracks().forEach((track) => {
         peer.addTrack(track, stream);
       });
 
-      // Explicitly tell the browser we want to receive audio (needed for some mobile browsers)
+      // Explicitly tell the browser we want to receive audio/video
       const offer = await peer.createOffer({
         offerToReceiveAudio: true,
+        offerToReceiveVideo: isVideo,
       });
       
       await peer.setLocalDescription(offer);
@@ -148,11 +149,11 @@ export const PeerProvider = ({ children }) => {
   // BUG 1 FIX — flushIceCandidates moved to AFTER setRemoteDescription so
   // candidates are not added while remoteDescription is still null.
   const createAnswer = useCallback(
-    async (offer, stream, targetId) => {
+    async (offer, stream, targetId, isVideo = false) => {
       const peer = buildPeer();
       setCallTarget(targetId);
 
-      stream.getAudioTracks().forEach((track) => {
+      stream.getTracks().forEach((track) => {
         peer.addTrack(track, stream);
       });
 
@@ -162,6 +163,7 @@ export const PeerProvider = ({ children }) => {
 
         const answer = await peer.createAnswer({
           offerToReceiveAudio: true,
+          offerToReceiveVideo: isVideo,
         });
         
         await peer.setLocalDescription(answer);

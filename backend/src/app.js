@@ -84,13 +84,13 @@ socket.on("ice-candidate", ({ candidate, to }) => {
     }
 });
 
-socket.on("call-user", ({ to, from, signal }) => {
+socket.on("call-user", ({ to, from, signal, callType }) => {
     const targetSocket = getOnlineUserIds(to);
     if (!targetSocket) return socket.emit("user-unavailable", { to });
     
     // Track call intent on server
     activeCalls[socket.id] = to;
-    io.to(targetSocket).emit("incoming-call", { from, signal, to });
+    io.to(targetSocket).emit("incoming-call", { from, signal, to, callType });
 });
 
     
