@@ -10,6 +10,7 @@ import { authStore } from "../store/userAuth.store.js";
 
 const PeerContext = createContext(null);
 
+  // ─── Constants ─────────────────────────────────────────────────────────────
 const ICE_SERVERS = {
   iceServers: [
     // --- TURN Servers (Primary) ---
@@ -42,22 +43,25 @@ const ICE_SERVERS = {
   ],
 };
 
+// ─── Peer Provider Component ────────────────────────────────────────────────
 export const PeerProvider = ({ children }) => {
+  // ── Refs ──────────────────────────────────────────────────────────────────
   const peerRef       = useRef(null);
   const callTargetRef = useRef(null);
   const iceCandidates = useRef([]);
   const remoteStreamRef = useRef(null);
 
+  // ── State ─────────────────────────────────────────────────────────────────
   const [remoteStream, setRemoteStream] = useState(null);
   const { socket } = authStore();
 
-  // ── Stable setter — safe inside stale closures ─────────────────────────────
+  // ── Remote Stream Management ──────────────────────────────────────────────
   const updateRemoteStream = useCallback((stream) => {
     remoteStreamRef.current = stream;
     setRemoteStream(stream);
   }, []);
 
-  // ── Flush queued ICE candidates (call AFTER setRemoteDescription) ──────────
+  // ── ICE Candidate Management ──────────────────────────────────────────────
   const flushIceCandidates = useCallback(async () => {
     const peer = peerRef.current;
     if (!peer || !peer.remoteDescription) return;
@@ -67,20 +71,18 @@ export const PeerProvider = ({ children }) => {
       try {
         await peer.addIceCandidate(candidate);
       } catch (err) {
-        console.error("[Peer] Failed to add queued ICE candidate:", err);
+        // Silent catch for queued candidates
       }
     }
   }, []);
 
-  // ── Build a fresh RTCPeerConnection ────────────────────────────────────────
+  // ── Peer Connection Lifecycle ─────────────────────────────────────────────
   const buildPeer = useCallback(() => {
     if (peerRef.current) {
       peerRef.current.close();
       peerRef.current = null;
     }
 
-    // DO NOT reset iceCandidates.current here because candidates might have
-    // arrived while the phone was ringing (before Accept was clicked).
     remoteStreamRef.current = null;
     setRemoteStream(null);
 
@@ -96,11 +98,18 @@ export const PeerProvider = ({ children }) => {
       }
     };
 
-    // BUG 4 FIX — use the existing stream if provided, otherwise build one.
-    // Using event.streams[0] is standard for RTCPeerConnection.
+    // Handle incoming media tracks
     peer.ontrack = (event) => {
-      const stream = event.streams[0] || new MediaStream([event.track]);
-      updateRemoteStream(stream);
+      if (!remoteStreamRef.current) {
+        remoteStreamRef.current = new MediaStream();
+      }
+      
+      const existingTracks = remoteStreamRef.current.getTracks();
+      if (!existingTracks.find(t => t.id === event.track.id)) {
+        remoteStreamRef.current.addTrack(event.track);
+      }
+
+      updateRemoteStream(new MediaStream(remoteStreamRef.current.getTracks()));
     };
 
     peer.onconnectionstatechange = () => {
@@ -116,16 +125,16 @@ export const PeerProvider = ({ children }) => {
     return peer;
   }, [socket, updateRemoteStream]);
 
-  // ── Stable setter for call target ──────────────────────────────────────────
+  // ── Call Target Management ────────────────────────────────────────────────
   const setCallTarget = useCallback((targetId) => {
     callTargetRef.current = targetId;
   }, []);
 
-  // ── createOffer — caller side ──────────────────────────────────────────────
+  // ── Signaling Actions ─────────────────────────────────────────────────────
   const createOffer = useCallback(
     async (stream, targetId, isVideo = false) => {
       setCallTarget(targetId);
-      iceCandidates.current = []; // Start fresh for a new call session
+      iceCandidates.current = [];
 
       const peer = buildPeer();
 
@@ -133,7 +142,6 @@ export const PeerProvider = ({ children }) => {
         peer.addTrack(track, stream);
       });
 
-      // Explicitly tell the browser we want to receive audio/video
       const offer = await peer.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: isVideo,
@@ -145,9 +153,6 @@ export const PeerProvider = ({ children }) => {
     [buildPeer, setCallTarget]
   );
 
-  // ── createAnswer — callee side ─────────────────────────────────────────────
-  // BUG 1 FIX — flushIceCandidates moved to AFTER setRemoteDescription so
-  // candidates are not added while remoteDescription is still null.
   const createAnswer = useCallback(
     async (offer, stream, targetId, isVideo = false) => {
       const peer = buildPeer();
@@ -169,33 +174,25 @@ export const PeerProvider = ({ children }) => {
         await peer.setLocalDescription(answer);
         return answer;
       } catch (err) {
-        console.error("[Peer] createAnswer failed:", err);
         throw err;
       }
     },
     [buildPeer, flushIceCandidates, setCallTarget]
   );
 
-  // ── setAnswer — caller applies callee's answer ─────────────────────────────
-  // BUG 2 FIX — replaced throw with a warning + early return so an accidental
-  // double-call doesn't crash the caller's async chain silently.
 const setAnswer = useCallback(async (answer) => {
     const peer = peerRef.current;
     if (!peer) return;
-    
-    // DEFENSIVE CHECK: If we are already stable, we've already applied an answer.
     if (peer.signalingState === "stable") return;
 
     try {
         await peer.setRemoteDescription(new RTCSessionDescription(answer));
         await flushIceCandidates();
     } catch (err) {
-        console.error("[Peer] setRemoteDescription (answer) failed:", err);
+        // Handle answer error silently
     }
 }, [flushIceCandidates]);
 
-  // ── BUG 3 FIX — expose a cleanup helper so ChatHomePage can clear the ref
-  // when the call ends, preventing stale ICE events from emitting to old peers.
   const resetPeer = useCallback(() => {
     callTargetRef.current = null;
     iceCandidates.current  = [];
@@ -203,10 +200,11 @@ const setAnswer = useCallback(async (answer) => {
       peerRef.current.close();
       peerRef.current = null;
     }
+    remoteStreamRef.current = null;
     updateRemoteStream(null);
   }, [updateRemoteStream]);
 
-  // ── ICE candidates arriving from the socket ────────────────────────────────
+  // ── Socket Events ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!socket) return;
 
@@ -216,16 +214,14 @@ const setAnswer = useCallback(async (answer) => {
       const peer = peerRef.current;
 
       if (!peer || !peer.remoteDescription) {
-        console.log("[Peer] Queuing ICE candidate (no remoteDescription yet)");
         iceCandidates.current.push(candidate);
         return;
       }
 
       try {
-        console.log("[Peer] Adding ICE candidate from socket");
         await peer.addIceCandidate(candidate);
       } catch (err) {
-        console.error("[Peer] addIceCandidate error:", err);
+        // Handle ICE error silently
       }
     };
 
@@ -233,7 +229,7 @@ const setAnswer = useCallback(async (answer) => {
     return () => socket.off("ice-candidate", handleIceCandidate);
   }, [socket]);
 
-  // ── Prevent Page Reload during active calls ────────────────────────────────
+  // ── Browser Lifecycle / Reload Protection ──────────────────────────────────
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       const savedCall = sessionStorage.getItem("activeCall");
@@ -245,16 +241,14 @@ const setAnswer = useCallback(async (answer) => {
     };
 
     const handleUnload = () => {
-      // If the user actually proceeds with the reload/close, notify the other peer
       if (callTargetRef.current && socket) {
         socket.emit("call-ended", { to: callTargetRef.current });
-        // Clear storage so the other side doesn't try to reconnect to a dead socket
         sessionStorage.removeItem("activeCall");
       }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("pagehide", handleUnload); // pagehide is more reliable than unload
+    window.addEventListener("pagehide", handleUnload);
     
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
@@ -262,7 +256,7 @@ const setAnswer = useCallback(async (answer) => {
     };
   }, [socket]);
 
-  // ── Cleanup on unmount ─────────────────────────────────────────────────────
+  // ── Cleanup ────────────────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       peerRef.current?.close();
@@ -270,7 +264,6 @@ const setAnswer = useCallback(async (answer) => {
   }, []);
 
   return (
-    
     <PeerContext.Provider
       value={{ remoteStream, createOffer, createAnswer, setAnswer, resetPeer, setCallTarget }}
     >

@@ -40,7 +40,7 @@ const callingContactRef = useRef(false);
     getNewContact, unSubScrContact
   } = messageStore();
 
-  // ── Chat UI state ───────────────────────────────────────────────────────────
+  // ── Chat UI State ───────────────────────────────────────────────────────────
   const [activeTab,             setActiveTab]             = useState('contacts');
   const [activeGroup,           setActiveGroup]           = useState(null);
   const [searchInputValue,      setValue]                 = useState({ inputValue: "" });
@@ -62,10 +62,7 @@ const callingContactRef = useRef(false);
 const [callingContact, setCallingContact] = useState(null);
 const [videoCallingContact, setVideoCallingContact] = useState(null);
 
-
-
-
-    
+  // ── Incoming Call Handlers ──────────────────────────────────────────────────
 useEffect(() => {
     const handleIncoming = ({ to, from, signal, callType: incomingType = "audio" }) => {
         if (authUser?._id && to === authUser._id) {
@@ -108,7 +105,7 @@ useEffect(() => {
     return () => socket?.off("incoming-call", handleIncoming);
 }, [socket, authUser?._id, setCallTarget]);
 
-// ── Call Reconnection Logic on Reload ────────────────────────────────────────
+  // ── Reconnection Logic ──────────────────────────────────────────────────────
 useEffect(() => {
     // Wait for socket, authUser, AND contacts to be loaded
     if (!socket || !authUser || contacts.length === 0) return;
@@ -153,7 +150,7 @@ useEffect(() => {
     }
 }, [socket, authUser, contacts]);
 
-// ── Listen for Peer Reconnection ─────────────────────────────────────────────
+  // ── Peer Reconnection Listener ──────────────────────────────────────────────
 useEffect(() => {
     if (!socket || contacts.length === 0) return;
 
@@ -199,7 +196,7 @@ const handleDeclineCall = () => {
 
 
 
-  // ─── Data fetching ─────────────────────────────────────────────────────────
+  // ─── Data Fetching ──────────────────────────────────────────────────────────
   useEffect(() => { get_all_contacts(); }, [get_all_contacts]);
 
   useEffect(() => {
@@ -245,7 +242,7 @@ const handleDeclineCall = () => {
     }
   }, [messages]);
 
-  // ─── Active user tracking ──────────────────────────────────────────────────
+  // ─── Active User Tracking ───────────────────────────────────────────────────
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -266,7 +263,7 @@ const handleDeclineCall = () => {
 
   useEffect(() => { getActiveUser(); }, [getActiveUser]);
 
-  // ─── Contact / Group handlers ──────────────────────────────────────────────
+  // ─── Contact / Group Handlers ───────────────────────────────────────────────
   const handleGroupClick = (groupInfo) => {
     setSelectedGroup(groupInfo._id);
     get_all_groupMessage(groupInfo._id);
@@ -303,7 +300,7 @@ const handleDeclineCall = () => {
 
   
 
-  // ─── File download ─────────────────────────────────────────────────────────
+  // ─── File Download Handler ──────────────────────────────────────────────────
   const handleDownloadFile = async (fileUrl) => {
     try {
       const response = await fetch(fileUrl, { method: 'GET', mode: 'cors', cache: 'no-cache', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' }, redirect: 'follow' });
@@ -317,10 +314,10 @@ const handleDeclineCall = () => {
       link.href = objectUrl; link.download = fileName;
       document.body.appendChild(link); link.click();
       URL.revokeObjectURL(objectUrl); document.body.removeChild(link);
-    } catch (error) { console.error("Download failed:", error); }
+    } catch (error) { /* Silent fail */ }
   };
 
-  // ─── Message helpers ───────────────────────────────────────────────────────
+  // ─── Message Helpers ────────────────────────────────────────────────────────
   const getContactMessageStatus = (contact) => {
     const msgs = messages.filter(msg => msg.sender === contact.userId?._id || msg.receiver === contact.userId?._id);
     if (!msgs.length) return null;
@@ -360,12 +357,10 @@ const handleDeclineCall = () => {
       setMessage(prev => ({ ...prev, message: "", status: "", file: null, image: null, video: null }));
       setSelectedFile(null);
       setFilePreview(null);
-    } catch (error) {
-      // Keep silent or handle error UI
-    }
+    } catch (error) { /* Silent fail */ }
   };
 
-  // ─── File attachment handlers ──────────────────────────────────────────────
+  // ─── File Attachment Handlers ───────────────────────────────────────────────
   const toggleFilePopup = () => setShowFilePopup(!showFilePopup);
 
   const handleFileSelection = (type) => {
@@ -402,7 +397,7 @@ const handleDeclineCall = () => {
     setMessage(prev => ({ ...prev, file: null }));
   };
 
-  // ─── Notification / status rendering ──────────────────────────────────────
+  // ─── Notification / Status Rendering ────────────────────────────────────────
   const renderMessageStatus = (status, isOwn) => {
     if (!isOwn) return;
     switch (status) {
@@ -424,7 +419,7 @@ const handleDeclineCall = () => {
     }
   };
 
-  // ─── Search ────────────────────────────────────────────────────────────────
+  // ─── Search Handlers ────────────────────────────────────────────────────────
   const handleSearch = (e) => setValue({ inputValue: e.target.value });
 
   const debouncedUserFilter = useMemo(
@@ -436,13 +431,13 @@ const handleDeclineCall = () => {
 
   useEffect(() => { debouncedUserFilter(searchInputValue.inputValue); }, [debouncedUserFilter, searchInputValue]);
 
-  // ─── Message menu ──────────────────────────────────────────────────────────
+  // ─── Message Menu Handlers ──────────────────────────────────────────────────
   const handleDeleteMessage  = () => setActiveMenuId(null);
   const handleForwardMessage = () => setActiveMenuId(null);
   const toggleMenu           = (messageId) => setActiveMenuId(prev => prev === messageId ? null : messageId);
   const handleOutsideClick   = () => { if (activeMenuId !== null) setActiveMenuId(null); };
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div onClick={handleOutsideClick} className="h-screen bg-[#1a1e23] z-0 flex flex-col md:flex-row">
 

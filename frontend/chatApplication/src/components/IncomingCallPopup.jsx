@@ -54,17 +54,19 @@ const IncomingCallPopup = ({ caller, onAccept, onDecline, incomingSignal }) => {
     }
   }, [remoteStream]);
 
-useEffect(() => {
+  // ── Socket Events ─────────────────────────────────────────────────────────
+  useEffect(() => {
     const handleEnded = () => {
         clearInterval(timerRef.current);
         localStreamRef.current?.getTracks().forEach(t => t.stop());
         resetPeer();
         setCallState("ended");
+        sessionStorage.removeItem("activeCall");
         setTimeout(onDecline, 1500);
     };
     socket.on("call-ended", handleEnded);
     return () => socket.off("call-ended", handleEnded);
-}, [socket, resetPeer, onDecline]);
+  }, [socket, resetPeer, onDecline]);
 
   // ── Cleanup on unmount ────────────────────────────────────────────────────
   useEffect(() => {
@@ -115,18 +117,16 @@ const handleAccept = useCallback(async () => {
 
 
 
-  // ── Auto-accept if ongoing reconnection ───────────────────────────────────
+  // ── Reconnection Logic ────────────────────────────────────────────────────
   useEffect(() => {
-    if (isAutoAccepting || callState === "active") return;
+    if (isAutoAccepting || callState === "active" || callState === "ended") return;
 
     const saved = sessionStorage.getItem("activeCall");
     if (saved) {
         try {
             const { callTargetId, callStatus } = JSON.parse(saved);
             if (callStatus === "ongoing" && callTargetId === caller?._id) {
-                console.log("🤝 Auto-accepting reconnection for ongoing call...");
                 setIsAutoAccepting(true);
-                // Wrap in timeout to ensure state has settled
                 setTimeout(() => {
                     handleAccept();
                 }, 0);

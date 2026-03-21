@@ -14,6 +14,7 @@ const IncomingVideoCallPopup = ({ caller, onAccept, onDecline, incomingSignal })
   const localStreamRef = useRef(null);
 
   // ── State ─────────────────────────────────────────────────────────────────
+  const [localStream, setLocalStream] = useState(null);
   const [callState, setCallState] = useState(() => {
     const saved = sessionStorage.getItem("activeCall");
     if (saved) {
@@ -37,7 +38,7 @@ const IncomingVideoCallPopup = ({ caller, onAccept, onDecline, incomingSignal })
     }
   }, [caller?._id, setCallTarget]);
 
-  // ── Accept ────────────────────────────────────────────────────────────────
+  // ── Call Accept/Decline ───────────────────────────────────────────────────
   const handleAccept = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -53,13 +54,13 @@ const IncomingVideoCallPopup = ({ caller, onAccept, onDecline, incomingSignal })
         }
       });
       localStreamRef.current = stream;
+      setLocalStream(stream);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
 
       const answer = await createAnswer(incomingSignal, stream, caller._id, true);
 
-      // Persist call state: ongoing
       const saved = JSON.parse(sessionStorage.getItem("activeCall") || "{}");
       sessionStorage.setItem("activeCall", JSON.stringify({
           ...saved,
@@ -75,41 +76,54 @@ const IncomingVideoCallPopup = ({ caller, onAccept, onDecline, incomingSignal })
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
       if (onAccept) onAccept();
     } catch (err) {
-      console.error("[IncomingVideoCall] Accept failed:", err);
       alert("Camera and Microphone access are required for video calls.");
       onDecline();
     }
   }, [socket, incomingSignal, caller, createAnswer, onAccept, onDecline]);
 
-  // ── Auto-accept if ongoing reconnection ───────────────────────────────────
+  // ── Reconnection Logic ────────────────────────────────────────────────────
   useEffect(() => {
-    if (isAutoAccepting || callState === "active") return;
+    if (isAutoAccepting || callState === "active" || callState === "ended") return;
 
     const saved = sessionStorage.getItem("activeCall");
     if (saved) {
         try {
             const { callTargetId, callStatus } = JSON.parse(saved);
             if (callStatus === "ongoing" && callTargetId === caller?._id) {
-                console.log("🤝 Auto-accepting video reconnection...");
                 setIsAutoAccepting(true);
-                setTimeout(() => handleAccept(), 0);
+                setTimeout(() => {
+                    handleAccept();
+                }, 0);
             }
         } catch (e) {}
     }
   }, [caller, handleAccept, isAutoAccepting, callState]);
 
-  // ── Remote stream ─────────────────────────────────────────────────────────
+  // ── Stream Synchronization ────────────────────────────────────────────────
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [callState, cameraOff, localStream]);
+
   useEffect(() => {
     if (remoteStream && remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch(e => console.warn("Remote video play failed", e));
+      
+      const playPromise = remoteVideoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          // Autoplay prevented silently
+        });
+      }
     }
-  }, [remoteStream]);
+  }, [remoteStream, callState]);
 
-  // ── Call end / disconnect ────────────────────────────────────────────────
+  // ── Socket Events ─────────────────────────────────────────────────────────
   useEffect(() => {
     const handleEnded = () => {
       setCallState("ended");
+      sessionStorage.removeItem("activeCall");
       setTimeout(onDecline, 1500);
     };
     socket.on("call-ended", handleEnded);
@@ -124,7 +138,7 @@ const IncomingVideoCallPopup = ({ caller, onAccept, onDecline, incomingSignal })
     };
   }, []);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // ── UI Handlers ───────────────────────────────────────────────────────────
   const handleEnd = useCallback(() => {
     socket.emit("call-ended", { to: caller._id });
     onDecline();
@@ -151,6 +165,7 @@ const IncomingVideoCallPopup = ({ caller, onAccept, onDecline, incomingSignal })
   const name = caller?.name || caller?.userId?.name || 'Unknown';
   const isActive = callState === "active";
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className={`fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center transition-all duration-500 ${isFullscreen ? 'p-0' : 'p-2 sm:p-4 md:p-8'}`}>
       
@@ -162,7 +177,7 @@ const IncomingVideoCallPopup = ({ caller, onAccept, onDecline, incomingSignal })
             ref={remoteVideoRef} 
             autoPlay 
             playsInline 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover bg-gray-950"
           />
         ) : (
           <div className="flex flex-col items-center justify-center gap-4 p-4 text-center">

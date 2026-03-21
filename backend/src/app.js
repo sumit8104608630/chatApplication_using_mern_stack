@@ -22,7 +22,6 @@ const activeCalls = {}    // { socketId: targetUserId }
 let active = []
 
 io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
 
     const userId      = socket.handshake.query.userId;
     const authUserId  = socket.handshake.query.authUserId;
@@ -147,7 +146,6 @@ socket.on("call-accepted", ({ to, signal }) => {
     // ── Disconnect ────────────────────────────────────────────────────────────
 
     socket.on("disconnect", () => {
-        console.log(`User disconnected: ${socket.id}`);
         
         // Notify other peer if in active call
         if (activeCalls[socket.id]) {

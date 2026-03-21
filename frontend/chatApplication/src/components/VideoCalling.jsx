@@ -14,6 +14,7 @@ const VideoCalling = ({ contact, onClose }) => {
   const localStreamRef = useRef(null);
 
   // ── State ─────────────────────────────────────────────────────────────────
+  const [localStream, setLocalStream] = useState(null);
   const [callState, setCallState] = useState("calling");
   const [muted,     setMuted]     = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
@@ -37,6 +38,7 @@ const VideoCalling = ({ contact, onClose }) => {
         }
       });
       localStreamRef.current = stream;
+      setLocalStream(stream);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
@@ -106,18 +108,31 @@ const VideoCalling = ({ contact, onClose }) => {
     };
   }, []);
 
-  // ── Remote stream ─────────────────────────────────────────────────────────
+  // ── Synchronize Streams to Video Elements ──────────────────────────────────
   useEffect(() => {
-    if (remoteStream && remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch(e => console.warn("Remote video play failed", e));
+    // Sync local stream whenever possible (e.g., on mount or when camera toggled)
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
     }
-  }, [remoteStream]);
+  }, [callState, cameraOff, localStream]);
 
-  // ── call-rejected / call-ended ───────────────────────────────────────────
+  useEffect(() => {
+    // Sync remote stream whenever it becomes available or video element mounts
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      
+      const playPromise = remoteVideoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => console.warn("[VideoCalling] Remote autoplay failed:", error));
+      }
+    }
+  }, [remoteStream, callState]);
+
+  // ── Socket Event Handlers ─────────────────────────────────────────────────
   useEffect(() => {
     const handleEnd = (status) => {
       setCallState(status);
+      sessionStorage.removeItem("activeCall");
       setTimeout(onClose, 1500);
     };
 
@@ -130,9 +145,10 @@ const VideoCalling = ({ contact, onClose }) => {
     };
   }, [socket, onClose]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // ── UI Handlers ───────────────────────────────────────────────────────────
   const handleEnd = useCallback(() => {
     socket.emit("call-ended", { to: contact.userId._id });
+    sessionStorage.removeItem("activeCall");
     onClose();
   }, [socket, contact, onClose]);
 
@@ -167,7 +183,7 @@ const VideoCalling = ({ contact, onClose }) => {
             ref={remoteVideoRef} 
             autoPlay 
             playsInline 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover bg-gray-950"
           />
         ) : (
           <div className="flex flex-col items-center justify-center gap-4 p-4 text-center">

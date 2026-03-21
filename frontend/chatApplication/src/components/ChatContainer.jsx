@@ -272,10 +272,8 @@ const ChatContainer = ({
     setActiveMenuId(null);
   };
 
-  // ── Actually send forward — wire up to your store/API as needed ──────────
   const handleForward = (recipientIds, msg) => {
-    console.log('Forwarding message', msg, 'to', recipientIds);
-    handleForwardMessage(recipientIds, msg); // pass up to parent if needed
+    handleForwardMessage(recipientIds, msg);
   };
 
   return (
