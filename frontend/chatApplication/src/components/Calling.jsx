@@ -48,8 +48,7 @@ const CallingPopup = ({ contact, onClose }) => {
 const startCall = useCallback(async () => {
     const stream = await getMic();
     const offer  = await createOffer(stream, contact.userId._id);
-    console.log("📞 call-user emitted to:", contact.userId._id);
-    console.log("📞 offer type:", offer.type);
+
     socket.emit("call-user", {
         to:     contact.userId._id,
         from:   authUser,
@@ -59,9 +58,7 @@ const startCall = useCallback(async () => {
 
 useEffect(() => {
     const handleAnswer = ({ signal }) => {
-        console.log("✅ accepted_answer received on CALLER side, signal type:", signal?.type);
         setAnswer(signal).then(() => {
-            console.log("✅ setAnswer done on CALLER side — switching to active");
             setCallState("active");
             timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
         });
@@ -119,7 +116,8 @@ useEffect(() => {
       localStreamRef.current?.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
       resetPeer();
-      onClose();
+      setCallState("ended");
+      setTimeout(onClose, 1500);
     };
 
     socket.on("call-ended", handleEnded);
@@ -205,6 +203,9 @@ useEffect(() => {
           {callState === "rejected" && (
             <p className="text-red-400 text-sm mt-1">Call declined</p>
           )}
+          {callState === "ended" && (
+            <p className="text-red-400 text-sm mt-1">Call ended</p>
+          )}
           {callState === "active" && (
             <p className="text-teal-400 text-sm mt-1 font-mono tracking-widest">
               {formatTime(seconds)}
@@ -226,8 +227,8 @@ useEffect(() => {
           )}
         </div>
 
-        {/* Controls — hidden while rejected */}
-        {callState !== "rejected" && (
+        {/* Controls — hidden while rejected or ended */}
+        {callState !== "rejected" && callState !== "ended" && (
           <div className="flex items-end gap-8 mt-2">
             {/* Mute */}
             <div className="flex flex-col items-center gap-1">

@@ -5,7 +5,7 @@ import { authStore } from '../store/userAuth.store';
 
 const IncomingCallPopup = ({ caller, onAccept, onDecline, incomingSignal }) => {
   const { socket }                                        = authStore();
-  const { createAnswer, resetPeer, remoteStream }         = usePeer();
+  const { createAnswer, resetPeer, remoteStream, setCallTarget } = usePeer();
 
   // ── Refs — declared at top before any function that uses them ─────────────
   const audioRef       = useRef(null);
@@ -14,9 +14,28 @@ const IncomingCallPopup = ({ caller, onAccept, onDecline, incomingSignal }) => {
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [visible,   setVisible]   = useState(false);
-  const [callState, setCallState] = useState("incoming"); // incoming | active
+  const [callState, setCallState] = useState(() => {
+    // Initial state check to avoid UI flash during reconnection
+    const saved = sessionStorage.getItem("activeCall");
+    if (saved) {
+      try {
+        const { callStatus, callTargetId } = JSON.parse(saved);
+        // If we have an active caller prop and it matches the saved target
+        // We can't access 'caller' here because it's a prop, but we can check it in useEffect
+      } catch (e) { }
+    }
+    return "incoming";
+  });
   const [seconds,   setSeconds]   = useState(0);
   const [muted,     setMuted]     = useState(false);
+  const [isAutoAccepting, setIsAutoAccepting] = useState(false);
+
+  // ── Set call target for reload protection ─────────────────────────────────
+  useEffect(() => {
+    if (caller?._id) {
+      setCallTarget(caller._id);
+    }
+  }, [caller?._id, setCallTarget]);
 
   // ── Fade in on mount ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -40,10 +59,11 @@ useEffect(() => {
         clearInterval(timerRef.current);
         localStreamRef.current?.getTracks().forEach(t => t.stop());
         resetPeer();
-        onDecline();
+        setCallState("ended");
+        setTimeout(onDecline, 1500);
     };
     socket.on("call-ended", handleEnded);
-    return () => socket.off("call-ended", handleEnded); // ← named, won't nuke CallingPopup's listener
+    return () => socket.off("call-ended", handleEnded);
 }, [socket, resetPeer, onDecline]);
 
   // ── Cleanup on unmount ────────────────────────────────────────────────────
@@ -66,10 +86,7 @@ const handleAccept = useCallback(async () => {
           } 
         });
         localStreamRef.current = stream;
-        console.log("📲 createAnswer called, caller._id:", caller._id);
         const answer = await createAnswer(incomingSignal, stream, caller._id);
-        console.log("📲 answer created, type:", answer?.type);
-        console.log("📲 emitting call-accepted to:", caller._id, "full caller obj:", caller);
         socket.emit("call-accepted", { to: caller, signal: answer });
         setCallState("active");
         timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
@@ -88,6 +105,26 @@ const handleAccept = useCallback(async () => {
 
 
 
+
+  // ── Auto-accept if ongoing reconnection ───────────────────────────────────
+  useEffect(() => {
+    if (isAutoAccepting || callState === "active") return;
+
+    const saved = sessionStorage.getItem("activeCall");
+    if (saved) {
+        try {
+            const { callTargetId, callStatus } = JSON.parse(saved);
+            if (callStatus === "ongoing" && callTargetId === caller?._id) {
+                console.log("🤝 Auto-accepting reconnection for ongoing call...");
+                setIsAutoAccepting(true);
+                // Wrap in timeout to ensure state has settled
+                setTimeout(() => {
+                    handleAccept();
+                }, 0);
+            }
+        } catch (e) { }
+    }
+  }, [caller, handleAccept, isAutoAccepting, callState]);
 
   // ── Decline / End ─────────────────────────────────────────────────────────
 
@@ -173,7 +210,7 @@ const handleEnd = useCallback(() => {
           {/* Name + status */}
           <div className="text-center">
             <p className="text-gray-400 text-sm tracking-widest uppercase">
-              {isActive ? 'On Call' : 'Incoming Call'}
+              {callState === "ended" ? 'Call Ended' : (isActive ? (isAutoAccepting ? 'Reconnecting...' : 'On Call') : 'Incoming Call')}
             </p>
             <h2 className="text-white text-xl font-semibold mt-1">{name}</h2>
 
@@ -200,7 +237,7 @@ const handleEnd = useCallback(() => {
           </div>
 
           {/* Buttons — different layout before and after accepting */}
-          {!isActive ? (
+          {callState !== "ended" && (!isActive ? (
             /* Pre-accept: Decline + Accept */
             <div className="flex gap-12 mt-2">
               <div className="flex flex-col items-center gap-2">
@@ -250,7 +287,7 @@ const handleEnd = useCallback(() => {
                 <span className="text-gray-500 text-xs">End call</span>
               </div>
             </div>
-          )}
+          ))}
 
         </div>
       </div>

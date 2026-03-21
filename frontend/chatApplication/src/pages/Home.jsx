@@ -18,7 +18,9 @@ import DropDownMenu from '../components/DropDownMenu.jsx';
 import ChatContainer from '../components/ChatContainer.jsx';
 import BlockedUserPopup from '../components/BlockedPopUp.jsx';
 import IncomingCallPopup from '../components/IncomingCallPopup.jsx';
+import { usePeer } from '../components/Peer.jsx';
 const ChatHomePage = () => {
+  const { setCallTarget } = usePeer();
   const { get_all_groupMessage, setSelectedGroup, groupSubScribe, selectedGroup, unGroupSubScribe } = groupMessageStore();
   const { filterGroupLoading, groups, filterGroupArray, filter_groups } = groupStore();
   const navigate = useNavigate();
@@ -62,22 +64,39 @@ const [callingContact, setCallingContact] = useState(null);
     
 useEffect(() => {
     const handleIncoming = ({ to, from, signal }) => {
-        if (to == authUser._id) {
+        if (authUser?._id && to === authUser._id) {
             setCaller(from);
             setIncomingSignal(signal);
             setCallState("incoming");
+            
+            // Set call target so beforeunload/pagehide in Peer.jsx knows who to notify
+            setCallTarget(from._id);
+            
+            // Persist call state: incoming (for callee)
+            sessionStorage.setItem("activeCall", JSON.stringify({
+                callTargetId: from._id,
+                callRole: "callee",
+                callStatus: "incoming",
+                callerInfo: from,
+                incomingSignal: signal,
+                callStartedAt: Date.now()
+            }));
         }
     };
-    socket.on("incoming-call", handleIncoming);
-    return () => socket.off("incoming-call", handleIncoming); // ← was missing
-}, [socket]);
+    socket?.on("incoming-call", handleIncoming);
+    return () => socket?.off("incoming-call", handleIncoming);
+}, [socket, authUser?._id, setCallTarget]);
 
 
 
 
 // ✅ Keep the popup alive, just update state
 const handleAcceptCall  = () => setCallState("active");
-const handleDeclineCall = () => setCallState(null); 
+const handleDeclineCall = () => {
+    setCallState(null);
+    sessionStorage.removeItem("activeCall");
+    setCallTarget(null);
+};
 
 
 
@@ -247,7 +266,9 @@ const handleDeclineCall = () => setCallState(null);
       setMessage(prev => ({ ...prev, message: "", status: "", file: null, image: null, video: null }));
       setSelectedFile(null);
       setFilePreview(null);
-    } catch (error) { console.log(error); }
+    } catch (error) {
+      // Keep silent or handle error UI
+    }
   };
 
   // ─── File attachment handlers ──────────────────────────────────────────────
@@ -535,5 +556,6 @@ const handleDeclineCall = () => setCallState(null);
     </div>
   );
 };
+
 
 export default ChatHomePage;

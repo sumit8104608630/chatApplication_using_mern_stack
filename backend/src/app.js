@@ -18,6 +18,7 @@ export const io = new Server(server, {
 
 const userSocketMap = {}  // { userId: socketId }
 const groupSocketMap = {} // { groupId: [socketIds] }
+const activeCalls = {}    // { socketId: targetUserId }
 let active = []
 
 io.on("connection", (socket) => {
@@ -44,24 +45,18 @@ io.on("connection", (socket) => {
 
     socket.on("block", ({ to, from }) => {
         const targetId = getOnlineUserIds(to);
-        console.log(to, from);
         io.to(targetId).emit("blocked", { to, from });
     });
 
     socket.on("unBlock", ({ to, from }) => {
         const targetId = getOnlineUserIds(to);
-        console.log(to, from);
         io.to(targetId).emit("unBlocked", { to, from });
     });
 
     // ── Active user management ────────────────────────────────────────────────
 
     socket.on("delete_active_user", ({ authUserId, selectedId }) => {
-        if (!authUserId || !selectedId) {
-            console.log("Invalid IDs received:", authUserId, selectedId);
-            return;
-        }
-        console.log("Deleting active user:", authUserId, selectedId);
+        if (!authUserId || !selectedId) return;
         active = active.filter(
             pair => !(pair.authUserId === authUserId && pair.selectedId === selectedId)
         );
@@ -74,7 +69,6 @@ io.on("connection", (socket) => {
     });
 
     socket.on("lastScene", (userId) => {
-        console.log("user ID", userId);
         active = active.filter(pair => pair.authUserId !== userId);
         io.emit("new_Date", { userId, newDate: Date.now() });
         io.emit("getActiveUser", active);
@@ -83,10 +77,8 @@ io.on("connection", (socket) => {
 
         // ── call ────────────────────────────────────────────────────────────────
 
-        // Add this to app.js inside io.on("connection")
 socket.on("ice-candidate", ({ candidate, to }) => {
     const targetSocket = getOnlineUserIds(to);
-    console.log("❄️ ICE: from=", socket.id, "to=", to, "targetSocket=", targetSocket);
     if (targetSocket) {
         io.to(targetSocket).emit("ice-candidate", { candidate });
     }
@@ -94,31 +86,35 @@ socket.on("ice-candidate", ({ candidate, to }) => {
 
 socket.on("call-user", ({ to, from, signal }) => {
     const targetSocket = getOnlineUserIds(to);
-    console.log("📞 call-user: to userId=", to, "targetSocket=", targetSocket);
     if (!targetSocket) return socket.emit("user-unavailable", { to });
+    
+    // Track call intent on server
+    activeCalls[socket.id] = to;
     io.to(targetSocket).emit("incoming-call", { from, signal, to });
 });
 
     
 socket.on("call-ended", ({ to }) => {
     const targetSocket = getOnlineUserIds(to);
+    delete activeCalls[socket.id];
     if (targetSocket) io.to(targetSocket).emit("call-ended");
 });
 
 
 socket.on("call-accepted", ({ to, signal }) => {
     const targetSocket = getOnlineUserIds(to._id);
-    console.log("🤝 call-accepted: emitting accepted_answer to socketId:", targetSocket);
+    
+    // Track established call on both ends
+    activeCalls[socket.id] = to._id;
     if (targetSocket) {
         io.to(targetSocket).emit("accepted_answer", { signal });
-    } else {
-        console.warn("⚠️ call-accepted: targetSocket not found for userId:", to._id);
     }
 });
 
 
     socket.on("call-rejected", ({ to }) => {
     const targetSocket = getOnlineUserIds(to);
+    delete activeCalls[socket.id];
     if (targetSocket) io.to(targetSocket).emit("call-rejected");
 });
 
@@ -152,6 +148,17 @@ socket.on("call-accepted", ({ to, signal }) => {
 
     socket.on("disconnect", () => {
         console.log(`User disconnected: ${socket.id}`);
+        
+        // Notify other peer if in active call
+        if (activeCalls[socket.id]) {
+            const targetId = activeCalls[socket.id];
+            const targetSocket = getOnlineUserIds(targetId);
+            if (targetSocket) {
+                io.to(targetSocket).emit("call-ended");
+            }
+            delete activeCalls[socket.id];
+        }
+
         delete userSocketMap[userId];
 
         for (const groupId in groupSocketMap) {
