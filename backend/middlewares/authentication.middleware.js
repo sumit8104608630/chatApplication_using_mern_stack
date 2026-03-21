@@ -30,19 +30,18 @@ return async(req,res,next)=>{
             const new_accessToken=await setUser(user);
             const new_refreshToken=await fun_refreshToken(user);
             req.user=user;
-            res.status(200).cookie('accessToken',new_accessToken,{
-                httpOnly:true,
-                secure:true,
+            const cookieOptions = {
+                httpOnly: true,
+                secure: true,
                 sameSite: "None",
                 maxAge: 7 * 24 * 60 * 60 * 1000,
+                expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                 path: "/"
-            }).cookie("refresh_token",new_refreshToken,{
-                httpOnly:true,
-                secure:true,
-                sameSite: "None",
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                path: "/"
-            })
+            };
+
+            res.status(200)
+                .cookie('accessToken', new_accessToken, cookieOptions)
+                .cookie("refresh_token", new_refreshToken, cookieOptions);
             return next()
         } 
         if(!user){

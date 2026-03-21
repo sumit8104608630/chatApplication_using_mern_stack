@@ -67,21 +67,19 @@ const user_login=asyncHandler(async(req,res)=>{
         return res.status(400).json(new apiResponse(400,{},token.message))
        }    
        
-      return res.status(200).cookie('accessToken',token.token,{
+      const cookieOptions = {
         httpOnly: true,
         secure: true,
         sameSite: "None",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         path: "/"
-    }).cookie("refresh_token",token.refresh_token,{
-        httpOnly: true,
-        secure: true,
-        sameSite: "None",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        path: "/"
-    }).json(new apiResponse(
-        200,user,"user logged in successfully"
-    ))
+      };
+
+      return res.status(200)
+        .cookie('accessToken', token.token, cookieOptions)
+        .cookie("refresh_token", token.refresh_token, cookieOptions)
+        .json(new apiResponse(200, user, "user logged in successfully"));
     } catch (error) {
      console.log(error) 
              return res.status(500).json(new apiResponse(500, {}, "Internal Server Error"));

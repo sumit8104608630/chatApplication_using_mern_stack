@@ -5,6 +5,7 @@ import { Server } from "socket.io"
 import cors from "cors"
 
 const app = express();
+app.set("trust proxy", 1); 
 const server = http.createServer(app)
 const origin = process.env.ORIGIN
 
@@ -188,7 +189,12 @@ export function getActiveUserId(userId) {
 
 // ── Express middleware ────────────────────────────────────────────────────────
 
-app.use(cors({ origin: origin, credentials: true }));
+app.use(cors({ 
+    origin: origin, 
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+}));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "16kb", extended: true }));
 app.use(express.static("public"));
