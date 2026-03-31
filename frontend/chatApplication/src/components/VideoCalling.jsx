@@ -21,6 +21,7 @@ const VideoCalling = ({ contact, onClose }) => {
   const [speaker,   setSpeaker]   = useState(true);
   const [seconds,   setSeconds]   = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mainView, setMainView] = useState("remote"); // "local" or "remote"
 
   // ── Media helper ──────────────────────────────────────────────────────────
   const getMedia = async () => {
@@ -164,6 +165,8 @@ const VideoCalling = ({ contact, onClose }) => {
 
   const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
 
+  const toggleMainView = () => setMainView(prev => prev === "remote" ? "local" : "remote");
+
   const formatTime = (s) => {
     const m   = Math.floor(s / 60);
     const sec = s % 60;
@@ -172,17 +175,22 @@ const VideoCalling = ({ contact, onClose }) => {
 
   const name = contact?.name || contact?.userId?.name || 'Unknown';
 
+  const mainStream = mainView === "remote" ? remoteStream : localStream;
+  const pipStream = mainView === "remote" ? localStream : remoteStream;
+
   return (
     <div className={`fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center transition-all duration-500 ${isFullscreen ? 'p-0' : 'p-2 sm:p-4 md:p-8'}`}>
       
       {/* Main Video Container */}
       <div className={`relative w-full h-full ${isFullscreen ? 'max-w-none rounded-none' : 'max-w-6xl rounded-2xl md:rounded-3xl'} aspect-video bg-gray-900 overflow-hidden shadow-2xl border border-gray-800 flex items-center justify-center`}>
         
-        {remoteStream ? (
+        {mainStream ? (
           <video 
-            ref={remoteVideoRef} 
+            key={mainView} // Re-mount video element on view switch
+            ref={mainView === "remote" ? remoteVideoRef : localVideoRef} 
             autoPlay 
             playsInline 
+            muted={mainView === "local"} // Mute local video in main view
             className="w-full h-full object-cover bg-gray-950"
           />
         ) : (
@@ -196,21 +204,27 @@ const VideoCalling = ({ contact, onClose }) => {
           </div>
         )}
 
-        {/* Local Video Preview (Picture-in-Picture) */}
-        <div className="absolute top-4 right-4 md:top-6 md:right-6 w-28 sm:w-36 md:w-48 aspect-video bg-black rounded-lg md:rounded-xl overflow-hidden border-2 border-teal-500 shadow-xl z-20">
-          <video 
-            ref={localVideoRef} 
-            autoPlay 
-            playsInline 
-            muted 
-            className="w-full h-full object-cover scale-x-[-1]"
-          />
-          {cameraOff && (
-            <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-              <CameraOff className="text-gray-500 w-5 h-5 md:w-6 md:h-6" />
-            </div>
-          )}
-        </div>
+        {/* Picture-in-Picture Video */}
+        {pipStream && (
+          <div 
+            onClick={toggleMainView} 
+            className="absolute top-4 right-4 md:top-6 md:right-6 w-28 sm:w-36 md:w-48 aspect-video bg-black rounded-lg md:rounded-xl overflow-hidden border-2 border-teal-500 shadow-xl z-20 cursor-pointer transition-all hover:scale-105 active:scale-95"
+          >
+            <video 
+              key={`${mainView}-pip`} // Re-mount video element on view switch
+              ref={mainView === "remote" ? localVideoRef : remoteVideoRef}
+              autoPlay 
+              playsInline 
+              muted // Always mute PiP
+              className="w-full h-full object-cover scale-x-[-1]"
+            />
+            {(mainView === "remote" && cameraOff) && (
+              <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+                <CameraOff className="text-gray-500 w-5 h-5 md:w-6 md:h-6" />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Overlay Info */}
         <div className="absolute top-4 left-4 md:top-6 md:left-6 z-10 bg-black/20 backdrop-blur-sm p-2 rounded-lg">

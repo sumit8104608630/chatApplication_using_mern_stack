@@ -2,7 +2,7 @@
 // useCallSocket.js — drop in src/hooks/
 // Handles WebRTC offer/answer/ICE via your existing Socket.io server
 // ─────────────────────────────────────────────────────────────────────────────
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react" ;
 import { authStore } from "../store/userAuth.store";
 
 const ICE_SERVERS = {
@@ -48,6 +48,7 @@ export function useCallSocket() {
   const [callDuration, setCallDuration] = useState("00:00");
   const [localStream,  setLocalStream]  = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [callRejected, setCallRejected] = useState(null);
 
   const timerRef = useRef(null);
 
@@ -183,6 +184,14 @@ export function useCallSocket() {
       setCallStatus("ended");
     });
 
+    socket.on("user-busy", ({ to }) => {
+      setCallRejected({ busy: true, to });
+    });
+
+    socket.on("user-unavailable", ({ to }) => {
+      setCallRejected({ unavailable: true, to });
+    });
+
     return () => {
       socket.off("incoming-call");
       socket.off("call-accepted");
@@ -284,6 +293,7 @@ export function useCallSocket() {
     callDuration,
     localStream,
     remoteStream,
+    callRejected,
 
     // Actions
     startCall,      // startCall(targetUser)
